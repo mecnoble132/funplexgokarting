@@ -480,7 +480,7 @@ section { padding: 60px 20px; }
 .timing-table { width: 100%; border-collapse: collapse; margin-top: 32px; }
 .timing-table th {
   font-family: 'Rajdhani', sans-serif;
-  font-size: 0.68rem;
+  font-size: 0.90rem;
   letter-spacing: 4px;
   text-transform: uppercase;
   color: var(--blue);
