@@ -267,8 +267,17 @@ nav {
   white-space: nowrap;
   text-shadow: 0 0 15px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 0, 0, 0.6), 0 0 45px rgba(0, 0, 0, 0.4), 0 0 60px rgba(0, 0, 0, 0.2);
 }
+
+@media (max-width: 599px) {
+  .hero-tag {
+    white-space: normal;
+  }
+}
 .hero-tag-blue {
   color: var(--blue);
+}
+.no-wrap {
+  white-space: nowrap;
 }
 .hero-title {
   font-family: 'Bebas Neue', sans-serif;
