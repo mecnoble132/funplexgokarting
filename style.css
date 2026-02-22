@@ -565,6 +565,7 @@ section { padding: 60px 20px; }
   display: flex; align-items: center; justify-content: center;
   font-size: 1.1rem;
   flex-shrink: 0;
+  color: var(--blue);
 }
 .map-detail-title {
   font-family: 'Rajdhani', sans-serif;
@@ -580,6 +581,34 @@ section { padding: 60px 20px; }
   line-height: 1.6;
 }
 .map-detail a { color: var(--blue); text-decoration: none; }
+
+/* ---- MAP SOCIALS ---- */
+.map-socials {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  margin-top: 2px;
+}
+.map-social-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.75) !important;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.map-social-link i {
+  font-size: 1.1rem;
+  color: var(--blue);
+  transition: color 0.2s;
+}
+.map-social-link:hover { color: var(--blue) !important; }
+.map-social-link:hover i { color: var(--cyan); }
+
 .directions-btn {
   display: inline-flex;
   align-items: center;
@@ -790,7 +819,7 @@ footer {
   border-top: 1px solid rgba(0,174,239,0.1);
 }
 .footer-logo-img { height: 72px; width: auto; display: block; margin-bottom: 12px; }
-.footer-desc { font-size: 0.88rem; color: var(--gray); line-height: 1.7; }
+.footer-desc { font-size: 0.88rem; color: var(--gray); line-height: 1.7; margin-bottom: 16px; }
 .footer-col-title {
   font-family: 'Rajdhani', sans-serif;
   font-size: 0.9rem;
@@ -807,6 +836,32 @@ footer {
   transition: color 0.2s;
 }
 .footer-links a:hover { color: var(--blue); }
+
+/* ---- FOOTER SOCIALS ---- */
+.footer-socials {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+.footer-social-link {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,174,239,0.08);
+  border: 1px solid rgba(0,174,239,0.25);
+  color: var(--gray);
+  font-size: 1rem;
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.footer-social-link:hover {
+  background: var(--blue);
+  color: var(--black);
+  border-color: var(--blue);
+}
+
 .footer-bottom {
   background: #060a10;
   padding: 16px 20px;
@@ -961,4 +1016,28 @@ footer {
   .gallery-btn-next { right: 44px; }
 
   #book::before { font-size: 25vw; }
+}
+
+/* ---- WHATSAPP FLOAT ---- */
+.whatsapp-float {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  width: 56px;
+  height: 56px;
+  background: #25D366;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  z-index: 999;
+  box-shadow: 0 4px 16px rgba(37,211,102,0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+  text-decoration: none;
+}
+.whatsapp-float:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 24px rgba(37,211,102,0.6);
 }
