@@ -342,6 +342,7 @@ nav {
 }
 .stat-item:nth-child(2n) { border-right: none; }
 .stat-item:nth-child(3), .stat-item:nth-child(4) { border-bottom: none; }
+.stat-item:last-child { border-right: none; }
 .stat-item:hover { background: rgba(0,174,239,0.06); }
 .stat-num {
   font-family: 'Bebas Neue', sans-serif;
