@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book a Race – FunPlex Go Karting</title>
+  <meta name="description" content="Book your go-karting session at FunPlex, Trivandrum. Choose your package and secure your slot.">
+  <link rel="icon" type="image/png" sizes="48x48" href="./favicon.png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="css/booking.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="index.html" class="nav-logo">
+    <img src="images/Funplex logo png.png" alt="FunPlex Motorsports Karting Arena" class="nav-logo-img">
+    <span class="nav-logo-text"><span class="logo-fun">FUN</span><span class="logo-plex">PLEX</span></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html#rates">Pricing</a></li>
+    <li><a href="index.html#timings">Timings</a></li>
+    <li><a href="index.html#map-section">Find Us</a></li>
+    <li><a href="index.html#gallery">Gallery</a></li>
+    <li><a href="booking.html" class="nav-cta">Book Now</a></li>
+  </ul>
+  <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- Mobile Menu Drawer -->
+<div class="mobile-menu" id="mobileMenu">
+  <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu">&#10005;</button>
+  <ul class="mobile-nav-links">
+    <li><a href="index.html#rates">Pricing</a></li>
+    <li><a href="index.html#timings">Timings</a></li>
+    <li><a href="index.html#map-section">Find Us</a></li>
+    <li><a href="index.html#gallery">Gallery</a></li>
+    <li><a href="booking.html" class="mobile-nav-cta">Book Now</a></li>
+  </ul>
+</div>
+<div class="mobile-menu-overlay" id="menuOverlay"></div>
+
+<!-- PAGE HERO -->
+<div class="booking-hero">
+  <div class="booking-hero-overlay"></div>
+  <div class="booking-hero-content">
+    <p class="booking-hero-tag"><i class="fa-solid fa-flag-checkered"></i> Reserve Your Slot</p>
+    <h1 class="booking-hero-title">BOOK YOUR <span class="accent">RACE</span></h1>
+    <p class="booking-hero-sub">Choose your package, pick a time, and get on the track.</p>
+  </div>
+</div>
+
+<!-- BOOKING FORM SECTION -->
+<section class="booking-section">
+  <div class="booking-container">
+
+    <!-- STEP INDICATOR -->
+    <div class="steps">
+      <div class="step active" id="step-indicator-1">
+        <div class="step-num">1</div>
+        <div class="step-label">Package</div>
+      </div>
+      <div class="step-line"></div>
+      <div class="step" id="step-indicator-2">
+        <div class="step-num">2</div>
+        <div class="step-label">Date & Time</div>
+      </div>
+      <div class="step-line"></div>
+      <div class="step" id="step-indicator-3">
+        <div class="step-num">3</div>
+        <div class="step-label">Your Details</div>
+      </div>
+    </div>
+
+    <!-- STEP 1: PACKAGE -->
+    <div class="form-step" id="step-1">
+      <h2 class="form-step-title">Choose Your Package</h2>
+      <div class="package-grid">
+        <div class="package-card" data-package="8" data-price="350" data-duration="15">
+          <div class="package-laps">8 Laps</div>
+          <div class="package-name">Rookie Run</div>
+          <div class="package-price"><sup>₹</sup>350 <span>/ rider</span></div>
+          <div class="package-check"><i class="fa-solid fa-check"></i></div>
+        </div>
+        <div class="package-card featured" data-package="13" data-price="450" data-duration="20">
+          <div class="package-badge">Best Value</div>
+          <div class="package-laps">13 Laps</div>
+          <div class="package-name">Speed Racer</div>
+          <div class="package-price"><sup>₹</sup>450 <span>/ rider</span></div>
+          <div class="package-check"><i class="fa-solid fa-check"></i></div>
+        </div>
+        <div class="package-card" data-package="18" data-price="550" data-duration="25">
+          <div class="package-laps">18 Laps</div>
+          <div class="package-name">Grand Prix</div>
+          <div class="package-price"><sup>₹</sup>550 <span>/ rider</span></div>
+          <div class="package-check"><i class="fa-solid fa-check"></i></div>
+        </div>
+      </div>
+
+      <div class="riders-row">
+        <label class="riders-label">Number of Riders</label>
+        <div class="riders-control">
+          <button class="riders-btn" id="riders-minus" type="button"><i class="fa-solid fa-minus"></i></button>
+          <span class="riders-count" id="riders-count">1</span>
+          <button class="riders-btn" id="riders-plus" type="button"><i class="fa-solid fa-plus"></i></button>
+        </div>
+        <span class="riders-note">Max 3 riders per booking</span>
+      </div>
+
+      <button class="form-next-btn" id="step1-next" disabled>
+        Next — Pick a Time <i class="fa-solid fa-arrow-right"></i>
+      </button>
+    </div>
+
+    <!-- STEP 2: DATE & TIME -->
+    <div class="form-step hidden" id="step-2">
+      <h2 class="form-step-title">Pick a Date & Time</h2>
+
+      <div class="date-row">
+        <label class="field-label">Select Date</label>
+        <input type="date" id="booking-date" class="date-input" />
+      </div>
+
+      <div class="slots-section" id="slots-section">
+        <label class="field-label">Available Time Slots</label>
+        <div class="slots-grid" id="slots-grid">
+          <div class="slots-placeholder">Select a date to see available slots</div>
+        </div>
+        <p class="cutoff-note"><i class="fa-solid fa-circle-info"></i> Slots within 30 minutes are unavailable for online booking. Call or WhatsApp us to book last-minute.</p>
+      </div>
+
+      <div class="step-nav">
+        <button class="form-back-btn" id="step2-back" type="button">
+          <i class="fa-solid fa-arrow-left"></i> Back
+        </button>
+        <button class="form-next-btn" id="step2-next" disabled>
+          Next — Your Details <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 3: DETAILS -->
+    <div class="form-step hidden" id="step-3">
+      <h2 class="form-step-title">Your Details</h2>
+
+      <div class="fields-grid">
+        <div class="field-group">
+          <label class="field-label" for="name">Full Name <span class="required">*</span></label>
+          <input type="text" id="name" class="field-input" placeholder="e.g. Arjun Kumar" autocomplete="name" />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="phone">Phone Number <span class="required">*</span></label>
+          <input type="tel" id="phone" class="field-input" placeholder="e.g. 9876543210" autocomplete="tel" />
+        </div>
+        <div class="field-group full-width">
+          <label class="field-label" for="email">Email Address <span class="required">*</span></label>
+          <input type="email" id="email" class="field-input" placeholder="e.g. arjun@email.com" autocomplete="email" />
+        </div>
+      </div>
+
+      <!-- BOOKING SUMMARY -->
+      <div class="summary-box">
+        <div class="summary-title"><i class="fa-solid fa-receipt"></i> Booking Summary</div>
+        <div class="summary-row">
+          <span>Package</span>
+          <span id="summary-package">—</span>
+        </div>
+        <div class="summary-row">
+          <span>Date</span>
+          <span id="summary-date">—</span>
+        </div>
+        <div class="summary-row">
+          <span>Time</span>
+          <span id="summary-time">—</span>
+        </div>
+        <div class="summary-row">
+          <span>Riders</span>
+          <span id="summary-riders">—</span>
+        </div>
+        <div class="summary-row">
+          <span>Price per Rider</span>
+          <span id="summary-price-per">—</span>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-row total">
+          <span>Total</span>
+          <span id="summary-total">—</span>
+        </div>
+      </div>
+
+      <div class="step-nav">
+        <button class="form-back-btn" id="step3-back" type="button">
+          <i class="fa-solid fa-arrow-left"></i> Back
+        </button>
+        <button class="form-submit-btn" id="submit-btn" type="button">
+          <i class="fa-solid fa-flag-checkered"></i> Confirm Booking
+        </button>
+      </div>
+    </div>
+
+    <!-- SUCCESS STATE -->
+    <div class="form-step hidden" id="step-success">
+      <div class="success-box">
+        <div class="success-icon"><i class="fa-solid fa-circle-check"></i></div>
+        <h2 class="success-title">You're Booked!</h2>
+        <p class="success-sub">Your slot has been reserved. See you on the track!</p>
+        <div class="success-details" id="success-details"></div>
+        <div class="success-note">
+          <i class="fa-solid fa-circle-info"></i>
+          A confirmation has been saved. Arrive 10 minutes before your slot for safety briefing.
+        </div>
+        <a href="index.html" class="form-next-btn" style="text-decoration:none; display:inline-flex; margin-top: 12px;">
+          <i class="fa-solid fa-house"></i> Back to Home
+        </a>
+      </div>
+    </div>
+
+    <!-- ERROR MESSAGE -->
+    <div class="error-toast hidden" id="error-toast">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <span id="error-msg">Something went wrong. Please try again.</span>
+    </div>
+
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brand">
+    <div class="footer-logos">
+      <img src="images/Funplex logo png.png" alt="FunPlex" class="footer-logo-img">
+    </div>
+    <p class="footer-desc">Trivandrum's only go-karting destination, right at Aakkulam.</p>
+  </div>
+  <div>
+    <div class="footer-col-title">Quick Links</div>
+    <ul class="footer-links">
+      <li><a href="index.html#rates">Pricing</a></li>
+      <li><a href="index.html#timings">Timings</a></li>
+      <li><a href="index.html#map-section">Find Us</a></li>
+    </ul>
+  </div>
+  <div>
+    <div class="footer-col-title">Contact</div>
+    <ul class="footer-links">
+      <li><a href="tel:+919497188199">+91 94971 88199</a></li>
+      <li><a href="mailto:funplextvm@gmail.com">funplextvm@gmail.com</a></li>
+    </ul>
+  </div>
+</footer>
+<div class="footer-bottom">
+  <p>© 2026 FunPlex Go Karting by Explorewings. All rights reserved.</p>
+</div>
+
+<a href="https://wa.me/919497188199" target="_blank" class="whatsapp-float" aria-label="Chat on WhatsApp">
+  <i class="fa-brands fa-whatsapp"></i>
+</a>
+
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script type="module" src="js/firebase-config.js"></script>
+<script type="module" src="js/booking.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

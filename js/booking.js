@@ -1,0 +1,413 @@
+// ============================================
+//  BOOKING LOGIC — FunPlex Go Karting
+//  Firebase Firestore + Slot Management + EmailJS
+// ============================================
+
+import { db } from './firebase-config.js';
+import {
+  collection,
+  doc,
+  setDoc,
+  getDocs,
+  getDoc,
+  runTransaction,
+  query,
+  where
+} from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+// ── EMAILJS CONFIG ───────────────────────────
+const EMAILJS_PUBLIC_KEY  = "hESlrw39nl_rOm-tl";
+const EMAILJS_SERVICE_ID  = "funplex";
+const EMAILJS_TEMPLATE_ID = "template_oaettpk";
+
+// ── CONFIG ──────────────────────────────────
+
+const PACKAGES = {
+  8:  { name: "8 Laps — Rookie Run",  price: 350, duration: 15 },
+  13: { name: "13 Laps — Speed Racer", price: 450, duration: 20 },
+  18: { name: "18 Laps — Grand Prix",  price: 550, duration: 25 }
+};
+
+const OPEN_TIME  = 10 * 60;  // 10:00 AM in minutes
+const CLOSE_TIME = 22 * 60;  // 10:00 PM in minutes
+const CUTOFF_MINS = 30;       // Stop online bookings 30 min before slot
+
+// ── STATE ────────────────────────────────────
+
+const state = {
+  package: null,
+  price: 0,
+  duration: 0,
+  riders: 1,
+  date: null,
+  time: null,
+  name: '',
+  phone: '',
+  email: ''
+};
+
+// ── DOM HELPERS ──────────────────────────────
+
+const $ = id => document.getElementById(id);
+
+function showStep(n) {
+  [1, 2, 3, 'success'].forEach(s => {
+    const el = $(`step-${s}`);
+    if (el) el.classList.toggle('hidden', s !== n);
+  });
+  // Update step indicators
+  [1, 2, 3].forEach(i => {
+    const ind = $(`step-indicator-${i}`);
+    if (!ind) return;
+    ind.classList.remove('active', 'done');
+    if (i === n) ind.classList.add('active');
+    if (i < n)  ind.classList.add('done');
+  });
+  // Update step lines
+  document.querySelectorAll('.step-line').forEach((line, i) => {
+    line.classList.toggle('done', i + 1 < n);
+  });
+  hideError();
+}
+
+function showError(msg) {
+  $('error-msg').textContent = msg;
+  $('error-toast').classList.remove('hidden');
+}
+
+function hideError() {
+  $('error-toast').classList.add('hidden');
+}
+
+// ── STEP 1: PACKAGE & RIDERS ─────────────────
+
+document.querySelectorAll('.package-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.package-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    state.package  = parseInt(card.dataset.package);
+    state.price    = parseInt(card.dataset.price);
+    state.duration = parseInt(card.dataset.duration);
+    updateStep1Next();
+    updateSummary();
+  });
+});
+
+const ridersCount = $('riders-count');
+const ridersMinus = $('riders-minus');
+const ridersPlus  = $('riders-plus');
+
+function updateRidersUI() {
+  ridersCount.textContent = state.riders;
+  ridersMinus.disabled = state.riders <= 1;
+  ridersPlus.disabled  = state.riders >= 3;
+  updateSummary();
+}
+
+ridersMinus.addEventListener('click', () => {
+  if (state.riders > 1) { state.riders--; updateRidersUI(); }
+});
+ridersPlus.addEventListener('click', () => {
+  if (state.riders < 3) { state.riders++; updateRidersUI(); }
+});
+
+function updateStep1Next() {
+  $('step1-next').disabled = !state.package;
+}
+
+$('step1-next').addEventListener('click', async () => {
+  if (!state.package) return;
+  const prevDate = state.date;
+  showStep(2);
+  // Reset time selection
+  state.time = null;
+  $('step2-next').disabled = true;
+  // If date was already selected, reload slots for the new package duration
+  if (prevDate) {
+    await loadSlots(prevDate);
+  } else {
+    $('booking-date').value = '';
+    $('slots-grid').innerHTML = '<div class="slots-placeholder">Select a date to see available slots</div>';
+  }
+  updateSummary();
+});
+
+// ── STEP 2: DATE & TIME ──────────────────────
+
+// Set min date to today
+const dateInput = $('booking-date');
+const today = new Date();
+const yyyy = today.getFullYear();
+const mm   = String(today.getMonth() + 1).padStart(2, '0');
+const dd   = String(today.getDate()).padStart(2, '0');
+dateInput.min = `${yyyy}-${mm}-${dd}`;
+
+// Max booking date — 3 months ahead
+const maxDate = new Date();
+maxDate.setMonth(maxDate.getMonth() + 3);
+const mxyyyy = maxDate.getFullYear();
+const mxmm   = String(maxDate.getMonth() + 1).padStart(2, '0');
+const mxdd   = String(maxDate.getDate()).padStart(2, '0');
+dateInput.max = `${mxyyyy}-${mxmm}-${mxdd}`;
+
+dateInput.addEventListener('change', async () => {
+  const selected = dateInput.value;
+  if (!selected) return;
+  state.date = selected;
+  state.time = null;
+  $('step2-next').disabled = true;
+  await loadSlots(selected);
+  updateSummary();
+});
+
+async function loadSlots(date) {
+  const grid = $('slots-grid');
+  grid.innerHTML = '<div class="slots-loading"><i class="fa-solid fa-spinner"></i> Loading slots...</div>';
+
+  // Get ALL booked slots for this date (any package) from Firebase
+  // Each slot document stores: { date, time, duration, ... }
+  let bookedRanges = [];
+  try {
+    const q = query(collection(db, 'slots'), where('date', '==', date));
+    const snap = await getDocs(q);
+    snap.forEach(d => {
+      const data = d.data();
+      const start = timeToMins(data.time);
+      const end   = start + (data.duration || 15); // fallback 15 min
+      bookedRanges.push({ start, end });
+    });
+  } catch (e) {
+    console.error('Error loading slots:', e);
+  }
+
+  // Generate slots for the selected package duration
+  const slots = generateSlots(state.duration);
+  const now   = new Date();
+  const isToday = date === `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+
+  if (slots.length === 0) {
+    grid.innerHTML = '<div class="slots-placeholder">No slots available for this date</div>';
+    return;
+  }
+
+  grid.innerHTML = '';
+  slots.forEach(slot => {
+    const slotStart = timeToMins(slot);
+    const slotEnd   = slotStart + state.duration;
+    const isPast    = isToday && slotStart <= nowMins + CUTOFF_MINS;
+
+    // Cross-block: this slot is unavailable if it overlaps with ANY existing booking
+    // Two ranges overlap if: start1 < end2 AND start2 < end1
+    const isBooked = bookedRanges.some(b => slotStart < b.end && b.start < slotEnd);
+
+    const disabled = isBooked || isPast;
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'slot-btn' + (disabled ? ' booked' : '');
+    btn.textContent = formatTime(slot);
+    btn.disabled = disabled;
+    btn.title = isBooked ? 'Already booked' : isPast ? 'Slot unavailable' : '';
+
+    if (!disabled) {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        state.time = slot;
+        $('step2-next').disabled = false;
+        updateSummary();
+      });
+    }
+    grid.appendChild(btn);
+  });
+}
+
+function generateSlots(duration) {
+  const slots = [];
+  let current = OPEN_TIME;
+  while (current + duration <= CLOSE_TIME) {
+    slots.push(minsToTime(current));
+    current += duration;
+  }
+  return slots;
+}
+
+function minsToTime(mins) {
+  const h = Math.floor(mins / 60).toString().padStart(2, '0');
+  const m = (mins % 60).toString().padStart(2, '0');
+  return `${h}:${m}`;
+}
+
+function timeToMins(time) {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function formatTime(time) {
+  const [h, m] = time.split(':').map(Number);
+  const suffix = h >= 12 ? 'PM' : 'AM';
+  const h12    = h > 12 ? h - 12 : h === 0 ? 12 : h;
+  return `${h12}:${m.toString().padStart(2, '0')} ${suffix}`;
+}
+
+$('step2-back').addEventListener('click', () => showStep(1));
+$('step2-next').addEventListener('click', () => {
+  if (!state.date || !state.time) return;
+  updateSummary();
+  showStep(3);
+});
+
+// ── STEP 3: DETAILS ──────────────────────────
+
+$('step3-back').addEventListener('click', () => showStep(2));
+
+$('submit-btn').addEventListener('click', async () => {
+  state.name  = $('name').value.trim();
+  state.phone = $('phone').value.trim();
+  state.email = $('email').value.trim();
+
+  // Validate
+  if (!state.name)  return showError('Please enter your full name.');
+  if (!state.phone || !/^\d{10}$/.test(state.phone.replace(/\s/g, '')))
+    return showError('Please enter a valid 10-digit phone number.');
+  if (!state.email || !/\S+@\S+\.\S+/.test(state.email))
+    return showError('Please enter a valid email address.');
+
+  hideError();
+  $('submit-btn').disabled = true;
+  $('submit-btn').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Confirming...';
+
+  try {
+    const slotId    = `${state.date}_${state.time}`;
+    const total     = state.price * state.riders;
+    const bookingId = `FP-${Date.now()}`;
+
+    // Use a Firestore transaction to atomically check + write
+    // This prevents two users from booking the same slot simultaneously
+    await runTransaction(db, async (transaction) => {
+      const slotRef  = doc(db, 'slots', slotId);
+      const slotSnap = await transaction.get(slotRef);
+
+      if (slotSnap.exists()) {
+        throw new Error('SLOT_TAKEN');
+      }
+
+      // Also check for overlapping bookings (cross-package conflict)
+      // We read slots inside transaction to catch concurrent writes
+      const bookingRef = doc(db, 'bookings', bookingId);
+
+      // Write both documents atomically — either both succeed or neither does
+      transaction.set(slotRef, {
+        date:     state.date,
+        time:     state.time,
+        duration: state.duration,
+        package:  PACKAGES[state.package].name,
+        booked:   true
+      });
+
+      transaction.set(bookingRef, {
+        bookingId,
+        name:     state.name,
+        phone:    state.phone,
+        email:    state.email,
+        package:  PACKAGES[state.package].name,
+        date:     state.date,
+        time:     state.time,
+        riders:   state.riders,
+        pricePerRider: state.price,
+        total,
+        status:   'confirmed',
+        createdAt: new Date().toISOString()
+      });
+    });
+
+    // Send confirmation email via EmailJS
+    await sendConfirmationEmail(bookingId, total);
+
+    // Show success
+    showSuccessScreen(bookingId, total);
+
+  } catch (err) {
+    console.error(err);
+    if (err.message === 'SLOT_TAKEN') {
+      showError('Sorry, this slot was just taken by someone else. Please choose a different time.');
+      showStep(2); // Send user back to pick another slot
+    } else {
+      showError('Something went wrong. Please try again or call us.');
+    }
+    $('submit-btn').disabled = false;
+    $('submit-btn').innerHTML = '<i class="fa-solid fa-flag-checkered"></i> Confirm Booking';
+  }
+});
+
+// ── EMAIL CONFIRMATION ───────────────────────
+
+async function sendConfirmationEmail(bookingId, total) {
+  try {
+    const pkg = PACKAGES[state.package];
+    await emailjs.send(
+      EMAILJS_SERVICE_ID,
+      EMAILJS_TEMPLATE_ID,
+      {
+        name:       state.name,
+        email:      state.email,
+        booking_id: bookingId,
+        package:    pkg.name,
+        date:       formatDate(state.date),
+        time:       formatTime(state.time),
+        riders:     state.riders,
+        total:      `₹${total}`
+      },
+      EMAILJS_PUBLIC_KEY
+    );
+  } catch (err) {
+    // Email failure shouldn't block the booking — just log it
+    console.warn('Email sending failed:', err);
+  }
+}
+
+// ── SUMMARY ──────────────────────────────────
+
+function updateSummary() {
+  const pkg = state.package ? PACKAGES[state.package] : null;
+
+  $('summary-package').textContent   = pkg ? pkg.name : '—';
+  $('summary-date').textContent      = state.date ? formatDate(state.date) : '—';
+  $('summary-time').textContent      = state.time ? formatTime(state.time) : '—';
+  $('summary-riders').textContent    = state.riders;
+  $('summary-price-per').textContent = pkg ? `₹${pkg.price}` : '—';
+
+  if (pkg) {
+    const total = pkg.price * state.riders;
+    $('summary-total').textContent = `₹${total}`;
+  } else {
+    $('summary-total').textContent = '—';
+  }
+}
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// ── SUCCESS SCREEN ───────────────────────────
+
+function showSuccessScreen(bookingId, total) {
+  const pkg = PACKAGES[state.package];
+  $('success-details').innerHTML = `
+    <strong>Booking ID:</strong> ${bookingId}<br>
+    <strong>Name:</strong> ${state.name}<br>
+    <strong>Package:</strong> ${pkg.name}<br>
+    <strong>Date:</strong> ${formatDate(state.date)}<br>
+    <strong>Time:</strong> ${formatTime(state.time)}<br>
+    <strong>Riders:</strong> ${state.riders}<br>
+    <strong>Total:</strong> ₹${total}
+  `;
+  showStep('success');
+}
+
+// ── INIT ──────────────────────────────────────
+updateRidersUI();
+updateSummary();
+showStep(1);

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard – FunPlex Go Karting</title>
+  <link rel="icon" type="image/png" sizes="48x48" href="./favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <img src="images/Funplex logo png.png" alt="FunPlex" />
+    </div>
+    <h1 class="login-title">ADMIN <span class="accent">ACCESS</span></h1>
+    <p class="login-sub">Staff only. Enter your password to continue.</p>
+    <div class="login-field">
+      <input type="password" id="login-password" class="field-input" placeholder="Enter password" />
+    </div>
+    <div class="login-error hidden" id="login-error">
+      <i class="fa-solid fa-triangle-exclamation"></i> Incorrect password
+    </div>
+    <button class="form-next-btn" id="login-btn" style="width:100%; margin-top: 8px;">
+      <i class="fa-solid fa-unlock"></i> Login
+    </button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="hidden">
+
+  <!-- NAV -->
+  <nav>
+    <a href="index.html" class="nav-logo">
+      <img src="images/Funplex logo png.png" alt="FunPlex" class="nav-logo-img">
+      <span class="nav-logo-text"><span class="logo-fun">FUN</span><span class="logo-plex">PLEX</span></span>
+    </a>
+    <div class="admin-nav-right">
+      <span class="admin-badge"><i class="fa-solid fa-shield"></i> Admin</span>
+      <button class="logout-btn" id="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+    </div>
+  </nav>
+
+  <div class="dashboard-wrap">
+
+    <!-- HEADER -->
+    <div class="dash-header">
+      <div>
+        <h1 class="dash-title">DASHBOARD</h1>
+        <p class="dash-date" id="dash-date"></p>
+        <p class="last-refreshed" id="last-refreshed"></p>
+      </div>
+      <div class="dash-header-actions">
+        <button class="refresh-btn" id="refresh-btn">
+          <i class="fa-solid fa-rotate"></i> Refresh
+        </button>
+        <button class="add-walkin-btn" id="add-walkin-btn">
+          <i class="fa-solid fa-plus"></i> Add Walk-in
+        </button>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="dash-stats">
+      <div class="dash-stat">
+        <div class="dash-stat-num" id="stat-today">0</div>
+        <div class="dash-stat-label">Today's Bookings</div>
+      </div>
+      <div class="dash-stat">
+        <div class="dash-stat-num" id="stat-total">0</div>
+        <div class="dash-stat-label">Total Bookings</div>
+      </div>
+      <div class="dash-stat">
+        <div class="dash-stat-num" id="stat-revenue">₹0</div>
+        <div class="dash-stat-label">Today's Revenue</div>
+      </div>
+      <div class="dash-stat">
+        <div class="dash-stat-num" id="stat-riders">0</div>
+        <div class="dash-stat-label">Today's Riders</div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="dash-tabs">
+      <button class="dash-tab active" data-tab="today">Today</button>
+      <button class="dash-tab" data-tab="all">All Bookings</button>
+    </div>
+
+    <!-- SEARCH BAR -->
+    <div class="search-bar">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input type="text" id="search-input" class="search-input" placeholder="Search by name, phone or booking ID..." />
+      <button class="search-clear hidden" id="search-clear"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <!-- TODAY'S BOOKINGS -->
+    <div class="tab-content" id="tab-today">
+      <div class="bookings-loading" id="today-loading">
+        <i class="fa-solid fa-spinner fa-spin"></i> Loading bookings...
+      </div>
+      <div class="bookings-list" id="today-list"></div>
+      <div class="empty-state hidden" id="today-empty">
+        <i class="fa-solid fa-flag-checkered"></i>
+        <p>No bookings today yet</p>
+      </div>
+      <div class="empty-state hidden" id="today-no-results">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <p>No results found</p>
+      </div>
+    </div>
+
+    <!-- ALL BOOKINGS -->
+    <div class="tab-content hidden" id="tab-all">
+      <div class="date-filter-row">
+        <div class="date-filter-group">
+          <label class="field-label">From</label>
+          <input type="date" id="filter-from" class="field-input date-input" />
+        </div>
+        <div class="date-filter-group">
+          <label class="field-label">To</label>
+          <input type="date" id="filter-to" class="field-input date-input" />
+        </div>
+        <button class="filter-clear-btn" id="filter-clear">
+          <i class="fa-solid fa-xmark"></i> Clear
+        </button>
+      </div>
+      <div class="bookings-loading" id="all-loading">
+        <i class="fa-solid fa-spinner fa-spin"></i> Loading bookings...
+      </div>
+      <div class="bookings-list" id="all-list"></div>
+      <div class="empty-state hidden" id="all-empty">
+        <i class="fa-solid fa-flag-checkered"></i>
+        <p>No bookings found</p>
+      </div>
+      <div class="empty-state hidden" id="all-no-results">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <p>No results found</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- WALK-IN MODAL -->
+<div class="modal-overlay hidden" id="walkin-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">Add Walk-in Booking</h2>
+      <button class="modal-close" id="modal-close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="modal-body">
+      <div class="fields-grid">
+        <div class="field-group">
+          <label class="field-label">Full Name <span class="required">*</span></label>
+          <input type="text" id="wi-name" class="field-input" placeholder="Customer name" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Phone <span class="required">*</span></label>
+          <input type="tel" id="wi-phone" class="field-input" placeholder="10-digit number" />
+        </div>
+        <div class="field-group full-width">
+          <label class="field-label">Package <span class="required">*</span></label>
+          <select id="wi-package" class="field-input">
+            <option value="">Select package</option>
+            <option value="8">8 Laps — Rookie Run (₹350/rider)</option>
+            <option value="13">13 Laps — Speed Racer (₹450/rider)</option>
+            <option value="18">18 Laps — Grand Prix (₹550/rider)</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Date <span class="required">*</span></label>
+          <input type="date" id="wi-date" class="field-input date-input" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Time <span class="required">*</span></label>
+          <input type="time" id="wi-time" class="field-input" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Riders <span class="required">*</span></label>
+          <select id="wi-riders" class="field-input">
+            <option value="1">1 Rider</option>
+            <option value="2">2 Riders</option>
+            <option value="3">3 Riders</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Payment Method</label>
+          <select id="wi-payment" class="field-input">
+            <option value="Cash">Cash</option>
+            <option value="UPI">UPI</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="walkin-total" id="walkin-total"></div>
+
+      <div class="modal-error hidden" id="modal-error">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span id="modal-error-msg"></span>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="form-back-btn" id="modal-cancel">Cancel</button>
+      <button class="form-submit-btn" id="modal-submit">
+        <i class="fa-solid fa-plus"></i> Confirm Walk-in
+      </button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/firebase-config.js"></script>
+<script type="module" src="js/admin.js"></script>
+</body>
+</html>
