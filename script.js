@@ -7,7 +7,7 @@ window.addEventListener('load', () => {
       loader.classList.add('hidden');
       loader.addEventListener('transitionend', () => loader.remove(), { once: true });
     }
-  }, 3000);
+  }, 1000);
 });
 
 // ---- SMOOTH SCROLL for nav links ----
