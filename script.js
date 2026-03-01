@@ -1,3 +1,15 @@
+// ---- LOADER ----
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    const loader = document.getElementById('loader');
+    const site   = document.querySelector('nav');
+    if (loader) {
+      loader.classList.add('hidden');
+      loader.addEventListener('transitionend', () => loader.remove(), { once: true });
+    }
+  }, 3000);
+});
+
 // ---- SMOOTH SCROLL for nav links ----
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
   anchor.addEventListener('click', function (e) {
