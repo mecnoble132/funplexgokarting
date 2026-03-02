@@ -289,23 +289,12 @@ async function loadAllBookings(silent = false) {
 // ── UPDATE STATS ─────────────────────────────
 
 function updateStats(todayBookings) {
-  const confirmed = todayBookings.filter(b => b.status !== 'cancelled');
-
-  // Revenue only counts actually received payments:
-  // 1. Paid Online (Razorpay)
-  // 2. Walk-ins (always paid at venue — cash/UPI)
-  // 3. Pay at Venue — only after marked as completed AND collected
-  const revenue = confirmed.reduce((sum, b) => {
-    const isPaidOnline    = b.paymentStatus === 'paid';
-    const isWalkin        = b.walkin === true;
-    const isCollected     = b.paymentStatus === 'collected' && b.status === 'completed';
-    if (isPaidOnline || isWalkin || isCollected) {
-      return sum + (b.total || 0);
-    }
-    return sum;
-  }, 0);
-
-  const riders = confirmed.reduce((sum, b) => sum + (b.riders || 0), 0);
+  const confirmed  = todayBookings.filter(b => b.status !== 'cancelled');
+  // Revenue only counts completed bookings — payment collected at venue
+  const revenue    = confirmed
+    .filter(b => b.status === 'completed')
+    .reduce((sum, b) => sum + (b.total || 0), 0);
+  const riders     = confirmed.reduce((sum, b) => sum + (b.riders || 0), 0);
 
   $('stat-today').textContent   = confirmed.length;
   $('stat-revenue').textContent = `₹${revenue}`;
@@ -315,24 +304,8 @@ function updateStats(todayBookings) {
 // ── CREATE BOOKING CARD ──────────────────────
 
 function createBookingCard(b) {
-  const isWalkin        = b.walkin === true;
-  const isCompleted     = b.status === 'completed';
-  const isPaidOnline    = b.paymentStatus === 'paid';
-  const isPayAtVenue    = b.paymentMethod === 'Pay at Venue';
-  const isVenueCollected = b.paymentStatus === 'collected';
-
-  // Payment badge
-  let paymentBadge = '';
-  if (isWalkin) {
-    // Walk-ins: show payment method (Cash/UPI) — always collected
-    paymentBadge = `<span class="badge badge-payment-collected"><i class="fa-solid fa-check"></i> ${b.paymentMethod || 'Cash'}</span>`;
-  } else if (isPaidOnline) {
-    paymentBadge = `<span class="badge badge-payment-paid"><i class="fa-solid fa-circle-check"></i> Paid Online</span>`;
-  } else if (isVenueCollected) {
-    paymentBadge = `<span class="badge badge-payment-collected"><i class="fa-solid fa-check"></i> Collected</span>`;
-  } else if (isPayAtVenue) {
-    paymentBadge = `<span class="badge badge-payment-venue"><i class="fa-solid fa-clock"></i> Pay at Venue</span>`;
-  }
+  const isWalkin    = b.walkin === true;
+  const isCompleted = b.status === 'completed';
 
   const card = document.createElement('div');
   card.className = `booking-card${isCompleted ? ' completed' : ''}${isWalkin ? ' walkin' : ''}`;
@@ -348,7 +321,6 @@ function createBookingCard(b) {
         </div>
         <div class="booking-badges">
           ${isWalkin ? '<span class="badge badge-walkin">Walk-in</span>' : ''}
-          ${paymentBadge}
           <span class="badge ${isCompleted ? 'badge-completed' : 'badge-confirmed'}">
             ${isCompleted ? 'Completed' : 'Confirmed'}
           </span>
@@ -372,6 +344,10 @@ function createBookingCard(b) {
           <span class="booking-detail-label">Riders</span>
           <span class="booking-detail-value">${b.riders}</span>
         </div>
+        ${b.phone ? `<div class="booking-detail">
+          <span class="booking-detail-label">Phone</span>
+          <span class="booking-detail-value">${b.phone}</span>
+        </div>` : ''}
         <div class="booking-detail">
           <span class="booking-detail-label">Total</span>
           <span class="booking-detail-value booking-total">₹${b.total}</span>
@@ -381,13 +357,8 @@ function createBookingCard(b) {
 
     <div class="booking-actions" style="margin-top:14px;">
       <a href="tel:${b.phone}" class="action-btn btn-call">
-        <i class="fa-solid fa-phone"></i> ${b.phone}
+        <i class="fa-solid fa-phone"></i> Call
       </a>
-      ${isPayAtVenue && !isVenueCollected ? `
-        <button class="action-btn btn-collect" id="collect-${b.bookingId}">
-          <i class="fa-solid fa-money-bill"></i> Mark Collected
-        </button>
-      ` : ''}
       <button class="action-btn ${isCompleted ? 'btn-undo' : 'btn-complete'}" id="complete-${b.bookingId}">
         <i class="fa-solid ${isCompleted ? 'fa-rotate-left' : 'fa-flag-checkered'}"></i>
         ${isCompleted ? 'Undo' : 'Mark Complete'}
@@ -402,35 +373,7 @@ function createBookingCard(b) {
     completeBtn.addEventListener('click', () => toggleComplete(b.bookingId, card, completeBtn));
   }
 
-  // Mark collected button — only for Pay at Venue bookings not yet collected
-  const collectBtn = card.querySelector(`#collect-${b.bookingId}`);
-  if (collectBtn) {
-    collectBtn.addEventListener('click', () => markCollected(b.bookingId, card, collectBtn));
-  }
-
   return card;
-}
-
-// ── MARK COLLECTED ───────────────────────────
-
-async function markCollected(bookingId, card, btn) {
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
-  try {
-    await updateDoc(doc(db, 'bookings', bookingId), { paymentStatus: 'collected' });
-    // Update badge
-    const venueBadge = card.querySelector('.badge-payment-venue');
-    if (venueBadge) {
-      venueBadge.className = 'badge badge-payment-collected';
-      venueBadge.innerHTML = '<i class="fa-solid fa-check"></i> Collected';
-    }
-    // Remove the collect button
-    btn.remove();
-  } catch (e) {
-    console.error(e);
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-money-bill"></i> Mark Collected';
-  }
 }
 
 // ── MARK COMPLETE & UNDO ─────────────────────
@@ -464,6 +407,24 @@ async function toggleComplete(bookingId, card, btn) {
       if (badge) { badge.className = 'badge badge-completed'; badge.textContent = 'Completed'; }
     }
     btn.disabled = false;
+
+    // Update revenue stat immediately without waiting for refresh
+    const allCards = document.querySelectorAll('#today-list .booking-card');
+    const todayBookings = [];
+    allCards.forEach(c => {
+      todayBookings.push({
+        status: c.querySelector('.badge-completed') ? 'completed' : 'confirmed',
+        total:  parseInt(c.querySelector('.booking-total')?.textContent?.replace('₹','') || 0),
+        riders: parseInt(c.querySelector('.booking-detail-value')?.textContent || 0)
+      });
+    });
+    // Re-read from Firebase for accurate stats
+    const q    = query(collection(db, 'bookings'), where('date', '==', todayStr()));
+    const snap = await getDocs(q);
+    const fresh = [];
+    snap.forEach(d => fresh.push(d.data()));
+    updateStats(fresh);
+
   } catch (e) {
     console.error(e);
     btn.disabled = false;

@@ -308,17 +308,18 @@ $('submit-btn').addEventListener('click', async () => {
 
       transaction.set(bookingRef, {
         bookingId,
-        name:     state.name,
-        phone:    state.phone,
-        email:    state.email,
-        package:  PACKAGES[state.package].name,
-        date:     state.date,
-        time:     state.time,
-        riders:   state.riders,
+        name:          state.name,
+        phone:         state.phone,
+        email:         state.email,
+        package:       PACKAGES[state.package].name,
+        date:          state.date,
+        time:          state.time,
+        riders:        state.riders,
         pricePerRider: state.price,
         total,
-        status:   'confirmed',
-        createdAt: new Date().toISOString()
+        paymentMethod: 'Pay at Venue',
+        status:        'confirmed',
+        createdAt:     new Date().toISOString()
       });
     });
 
@@ -396,13 +397,13 @@ function formatDate(dateStr) {
 function showSuccessScreen(bookingId, total) {
   const pkg = PACKAGES[state.package];
   $('success-details').innerHTML = `
-    <strong>Booking ID:</strong> ${bookingId}<br>
-    <strong>Name:</strong> ${state.name}<br>
-    <strong>Package:</strong> ${pkg.name}<br>
-    <strong>Date:</strong> ${formatDate(state.date)}<br>
-    <strong>Time:</strong> ${formatTime(state.time)}<br>
-    <strong>Riders:</strong> ${state.riders}<br>
-    <strong>Total:</strong> ₹${total}
+    <div class="success-detail-row"><span>Booking ID</span><strong>${bookingId}</strong></div>
+    <div class="success-detail-row"><span>Name</span><strong>${state.name}</strong></div>
+    <div class="success-detail-row"><span>Package</span><strong>${pkg.name}</strong></div>
+    <div class="success-detail-row"><span>Date</span><strong>${formatDate(state.date)}</strong></div>
+    <div class="success-detail-row"><span>Time</span><strong>${formatTime(state.time)}</strong></div>
+    <div class="success-detail-row"><span>Riders</span><strong>${state.riders}</strong></div>
+    <div class="success-detail-row total-row"><span>Total</span><strong>₹${total}</strong></div>
   `;
   showStep('success');
 }

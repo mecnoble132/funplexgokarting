@@ -604,3 +604,40 @@
   line-height: 1.5;
 }
 .cutoff-note i { color: var(--blue); margin-top: 2px; flex-shrink: 0; }
+
+/* ---- SUCCESS DETAILS ---- */
+.success-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.95rem;
+}
+.success-detail-row span { color: var(--gray); }
+.success-detail-row strong { color: var(--white); }
+.success-detail-row.total-row {
+  border-bottom: none;
+  margin-top: 4px;
+  padding-top: 12px;
+}
+.success-detail-row.total-row strong {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.5rem;
+  color: var(--blue);
+}
+.success-payment-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0,174,239,0.08);
+  border: 1px solid rgba(0,174,239,0.2);
+  border-left: 3px solid var(--blue);
+  padding: 12px 16px;
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.88rem;
+  color: rgba(255,255,255,0.8);
+  margin-top: 16px;
+}
+.success-payment-note i { color: var(--blue); font-size: 1rem; flex-shrink: 0; }
