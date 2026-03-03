@@ -78,6 +78,12 @@ function showStep(n) {
     line.classList.toggle('done', i + 1 < n);
   });
   hideError();
+
+  // Scroll to top of the booking section for better mobile UX
+  const bookingTop = document.querySelector('.booking-section');
+  if (bookingTop) {
+    bookingTop.scrollIntoView({ behavior: 'smooth' });
+  }
 }
 
 function showError(msg) {
