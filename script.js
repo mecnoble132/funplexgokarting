@@ -2,12 +2,11 @@
 window.addEventListener('load', () => {
   setTimeout(() => {
     const loader = document.getElementById('loader');
-    const site   = document.querySelector('nav');
     if (loader) {
       loader.classList.add('hidden');
       loader.addEventListener('transitionend', () => loader.remove(), { once: true });
     }
-  }, 1000);
+  }, 200);
 });
 
 // ---- SMOOTH SCROLL for nav links ----
