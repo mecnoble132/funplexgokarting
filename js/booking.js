@@ -16,19 +16,27 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
 // ── EMAILJS CONFIG ───────────────────────────
-const EMAILJS_PUBLIC_KEY  = "hESlrw39nl_rOm-tl";
-const EMAILJS_SERVICE_ID  = "funplex";
+const EMAILJS_PUBLIC_KEY = "hESlrw39nl_rOm-tl";
+const EMAILJS_SERVICE_ID = "funplex";
 const EMAILJS_TEMPLATE_ID = "template_oaettpk";
 
 // ── CONFIG ──────────────────────────────────
 
 const PACKAGES = {
-  8:  { name: "8 Laps — Rookie Run",  price: 350, duration: 15 },
+  8: { name: "8 Laps — Rookie Run", price: 350, duration: 15 },
   13: { name: "13 Laps — Speed Racer", price: 450, duration: 20 },
-  18: { name: "18 Laps — Grand Prix",  price: 550, duration: 25 }
+  18: { name: "18 Laps — Grand Prix", price: 550, duration: 25 }
 };
 
-const OPEN_TIME  = 10 * 60;  // 10:00 AM in minutes
+const KARTS = 3; // Max riders per single slot
+const MAX_RIDERS = 12;
+
+// How many consecutive slots are needed for a given rider count
+function slotsNeeded(riders) {
+  return Math.ceil(riders / KARTS);
+}
+
+const OPEN_TIME = 10 * 60;  // 10:00 AM in minutes
 const CLOSE_TIME = 22 * 60;  // 10:00 PM in minutes
 const CUTOFF_MINS = 30;       // Stop online bookings 30 min before slot
 
@@ -41,6 +49,8 @@ const state = {
   riders: 1,
   date: null,
   time: null,
+  timeEnd: null,       // end time of booking window (for multi-slot)
+  windowSlots: [],     // all slot times in the booking window
   name: '',
   phone: '',
   email: ''
@@ -61,7 +71,7 @@ function showStep(n) {
     if (!ind) return;
     ind.classList.remove('active', 'done');
     if (i === n) ind.classList.add('active');
-    if (i < n)  ind.classList.add('done');
+    if (i < n) ind.classList.add('done');
   });
   // Update step lines
   document.querySelectorAll('.step-line').forEach((line, i) => {
@@ -85,8 +95,8 @@ document.querySelectorAll('.package-card').forEach(card => {
   card.addEventListener('click', () => {
     document.querySelectorAll('.package-card').forEach(c => c.classList.remove('selected'));
     card.classList.add('selected');
-    state.package  = parseInt(card.dataset.package);
-    state.price    = parseInt(card.dataset.price);
+    state.package = parseInt(card.dataset.package);
+    state.price = parseInt(card.dataset.price);
     state.duration = parseInt(card.dataset.duration);
     updateStep1Next();
     updateSummary();
@@ -95,20 +105,40 @@ document.querySelectorAll('.package-card').forEach(card => {
 
 const ridersCount = $('riders-count');
 const ridersMinus = $('riders-minus');
-const ridersPlus  = $('riders-plus');
+const ridersPlus = $('riders-plus');
 
 function updateRidersUI() {
   ridersCount.textContent = state.riders;
   ridersMinus.disabled = state.riders <= 1;
-  ridersPlus.disabled  = state.riders >= 3;
+  ridersPlus.disabled = state.riders >= MAX_RIDERS;
+
+  // Show how many slots will be needed
+  const needed = slotsNeeded(state.riders);
+  const riderNote = document.querySelector('.riders-note');
+  if (riderNote) {
+    if (needed === 1) {
+      riderNote.innerHTML = `<i class="fa-solid fa-circle-info"></i> Max ${MAX_RIDERS} riders. For groups larger than ${MAX_RIDERS}, please <a href="tel:+919497188199" class="rider-link">Call us directly</a>.`;
+    } else {
+      riderNote.innerHTML = `<i class="fa-solid fa-layer-group"></i> ${needed} consecutive slots will be reserved for your group (${state.riders} riders ÷ ${KARTS} karts).`;
+    }
+  }
   updateSummary();
 }
 
 ridersMinus.addEventListener('click', () => {
-  if (state.riders > 1) { state.riders--; updateRidersUI(); }
+  if (state.riders > 1) {
+    state.riders--;
+    updateRidersUI();
+    // Reload slots if date already selected — slot count may change
+    if (state.date) { state.time = null; $('step2-next').disabled = true; loadSlots(state.date); }
+  }
 });
 ridersPlus.addEventListener('click', () => {
-  if (state.riders < 3) { state.riders++; updateRidersUI(); }
+  if (state.riders < MAX_RIDERS) {
+    state.riders++;
+    updateRidersUI();
+    if (state.date) { state.time = null; $('step2-next').disabled = true; loadSlots(state.date); }
+  }
 });
 
 function updateStep1Next() {
@@ -138,16 +168,16 @@ $('step1-next').addEventListener('click', async () => {
 const dateInput = $('booking-date');
 const today = new Date();
 const yyyy = today.getFullYear();
-const mm   = String(today.getMonth() + 1).padStart(2, '0');
-const dd   = String(today.getDate()).padStart(2, '0');
+const mm = String(today.getMonth() + 1).padStart(2, '0');
+const dd = String(today.getDate()).padStart(2, '0');
 dateInput.min = `${yyyy}-${mm}-${dd}`;
 
 // Max booking date — 3 months ahead
 const maxDate = new Date();
 maxDate.setMonth(maxDate.getMonth() + 3);
 const mxyyyy = maxDate.getFullYear();
-const mxmm   = String(maxDate.getMonth() + 1).padStart(2, '0');
-const mxdd   = String(maxDate.getDate()).padStart(2, '0');
+const mxmm = String(maxDate.getMonth() + 1).padStart(2, '0');
+const mxdd = String(maxDate.getDate()).padStart(2, '0');
 dateInput.max = `${mxyyyy}-${mxmm}-${mxdd}`;
 
 dateInput.addEventListener('change', async () => {
@@ -164,8 +194,7 @@ async function loadSlots(date) {
   const grid = $('slots-grid');
   grid.innerHTML = '<div class="slots-loading"><i class="fa-solid fa-spinner"></i> Loading slots...</div>';
 
-  // Get ALL booked slots for this date (any package) from Firebase
-  // Each slot document stores: { date, time, duration, ... }
+  // Get ALL booked slots for this date from Firebase
   let bookedRanges = [];
   try {
     const q = query(collection(db, 'slots'), where('date', '==', date));
@@ -173,54 +202,83 @@ async function loadSlots(date) {
     snap.forEach(d => {
       const data = d.data();
       const start = timeToMins(data.time);
-      const end   = start + (data.duration || 15); // fallback 15 min
+      const end = start + (data.duration || 15);
       bookedRanges.push({ start, end });
     });
   } catch (e) {
     console.error('Error loading slots:', e);
   }
 
-  // Generate slots for the selected package duration
-  const slots = generateSlots(state.duration);
-  const now   = new Date();
-  const isToday = date === `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  // Generate all base slots for the selected package duration
+  const allSlots = generateSlots(state.duration);
+  const needed = slotsNeeded(state.riders);
+  const now = new Date();
+  const isToday = date === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const nowMins = now.getHours() * 60 + now.getMinutes();
 
-  if (slots.length === 0) {
+  if (allSlots.length === 0) {
     grid.innerHTML = '<div class="slots-placeholder">No slots available for this date</div>';
     return;
   }
 
   grid.innerHTML = '';
-  slots.forEach(slot => {
-    const slotStart = timeToMins(slot);
-    const slotEnd   = slotStart + state.duration;
-    const isPast    = isToday && slotStart <= nowMins + CUTOFF_MINS;
+  let anyAvailable = false;
 
-    // Cross-block: this slot is unavailable if it overlaps with ANY existing booking
-    // Two ranges overlap if: start1 < end2 AND start2 < end1
-    const isBooked = bookedRanges.some(b => slotStart < b.end && b.start < slotEnd);
+  allSlots.forEach((slot, idx) => {
+    // A "booking window" starts at this slot and spans `needed` consecutive slots
+    const windowSlots = allSlots.slice(idx, idx + needed);
+
+    // Not enough remaining slots to fit the window
+    if (windowSlots.length < needed) return;
+
+    const windowStart = timeToMins(windowSlots[0]);
+    const windowEnd = windowStart + (needed * state.duration);
+
+    // Past/cutoff check — the start of the window must be > now + cutoff
+    const isPast = isToday && windowStart <= nowMins + CUTOFF_MINS;
+
+    // Overlap check — the entire window must be free
+    const isBooked = bookedRanges.some(b => windowStart < b.end && b.start < windowEnd);
 
     const disabled = isBooked || isPast;
+    if (!disabled) anyAvailable = true;
 
     const btn = document.createElement('button');
     btn.type = 'button';
+
+    // Always show start – end time range
+    const startLabel = formatTime(windowSlots[0]);
+    const endLabel = formatTime(minsToTime(windowEnd));
+    btn.textContent = `${startLabel} – ${endLabel}`;
+
     btn.className = 'slot-btn' + (disabled ? ' booked' : '');
-    btn.textContent = formatTime(slot);
     btn.disabled = disabled;
-    btn.title = isBooked ? 'Already booked' : isPast ? 'Slot unavailable' : '';
+    btn.title = isBooked ? 'Already booked' : isPast ? 'Slot unavailable' : `${needed} slot${needed > 1 ? 's' : ''} reserved`;
+
+    // Store the composite slot key so we can block all slots on submit
+    btn.dataset.windowStart = windowSlots[0];
+    btn.dataset.windowSlots = JSON.stringify(windowSlots);
 
     if (!disabled) {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
-        state.time = slot;
+        state.time = windowSlots[0];           // start time for DB / display
+        state.timeEnd = minsToTime(windowEnd);    // end time for display
+        state.windowSlots = JSON.parse(btn.dataset.windowSlots);
         $('step2-next').disabled = false;
         updateSummary();
       });
     }
     grid.appendChild(btn);
   });
+
+  if (!anyAvailable && grid.querySelectorAll('.slot-btn:not(.booked)').length === 0) {
+    const msg = document.createElement('div');
+    msg.className = 'slots-placeholder';
+    msg.textContent = 'No available slots for this date';
+    grid.appendChild(msg);
+  }
 }
 
 function generateSlots(duration) {
@@ -247,7 +305,7 @@ function timeToMins(time) {
 function formatTime(time) {
   const [h, m] = time.split(':').map(Number);
   const suffix = h >= 12 ? 'PM' : 'AM';
-  const h12    = h > 12 ? h - 12 : h === 0 ? 12 : h;
+  const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
   return `${h12}:${m.toString().padStart(2, '0')} ${suffix}`;
 }
 
@@ -263,12 +321,12 @@ $('step2-next').addEventListener('click', () => {
 $('step3-back').addEventListener('click', () => showStep(2));
 
 $('submit-btn').addEventListener('click', async () => {
-  state.name  = $('name').value.trim();
+  state.name = $('name').value.trim();
   state.phone = $('phone').value.trim();
   state.email = $('email').value.trim();
 
   // Validate
-  if (!state.name)  return showError('Please enter your full name.');
+  if (!state.name) return showError('Please enter your full name.');
   if (!state.phone || !/^\d{10}$/.test(state.phone.replace(/\s/g, '')))
     return showError('Please enter a valid 10-digit phone number.');
   if (!state.email || !/\S+@\S+\.\S+/.test(state.email))
@@ -279,47 +337,50 @@ $('submit-btn').addEventListener('click', async () => {
   $('submit-btn').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Confirming...';
 
   try {
-    const slotId    = `${state.date}_${state.time}`;
-    const total     = state.price * state.riders;
+    const slotId = `${state.date}_${state.time}`;
+    const total = state.price * state.riders;
     const bookingId = `FP-${Date.now()}`;
 
     // Use a Firestore transaction to atomically check + write
     // This prevents two users from booking the same slot simultaneously
     await runTransaction(db, async (transaction) => {
-      const slotRef  = doc(db, 'slots', slotId);
-      const slotSnap = await transaction.get(slotRef);
+      // Check all slots in the window are still free
+      const slotRefs = state.windowSlots.map(t => doc(db, 'slots', `${state.date}_${t}`));
+      const slotSnaps = await Promise.all(slotRefs.map(ref => transaction.get(ref)));
 
-      if (slotSnap.exists()) {
-        throw new Error('SLOT_TAKEN');
-      }
+      slotSnaps.forEach(snap => {
+        if (snap.exists()) throw new Error('SLOT_TAKEN');
+      });
 
-      // Also check for overlapping bookings (cross-package conflict)
-      // We read slots inside transaction to catch concurrent writes
       const bookingRef = doc(db, 'bookings', bookingId);
 
-      // Write both documents atomically — either both succeed or neither does
-      transaction.set(slotRef, {
-        date:     state.date,
-        time:     state.time,
-        duration: state.duration,
-        package:  PACKAGES[state.package].name,
-        booked:   true
+      // Block every slot in the window
+      slotRefs.forEach((ref, i) => {
+        transaction.set(ref, {
+          date: state.date,
+          time: state.windowSlots[i],
+          duration: state.duration,
+          package: PACKAGES[state.package].name,
+          booked: true
+        });
       });
 
       transaction.set(bookingRef, {
         bookingId,
-        name:          state.name,
-        phone:         state.phone,
-        email:         state.email,
-        package:       PACKAGES[state.package].name,
-        date:          state.date,
-        time:          state.time,
-        riders:        state.riders,
+        name: state.name,
+        phone: state.phone,
+        email: state.email,
+        package: PACKAGES[state.package].name,
+        date: state.date,
+        time: state.time,
+        timeEnd: state.timeEnd,
+        windowSlots: state.windowSlots,
+        riders: state.riders,
         pricePerRider: state.price,
         total,
         paymentMethod: 'Pay at Venue',
-        status:        'confirmed',
-        createdAt:     new Date().toISOString()
+        status: 'confirmed',
+        createdAt: new Date().toISOString()
       });
     });
 
@@ -351,14 +412,14 @@ async function sendConfirmationEmail(bookingId, total) {
       EMAILJS_SERVICE_ID,
       EMAILJS_TEMPLATE_ID,
       {
-        name:       state.name,
-        email:      state.email,
+        name: state.name,
+        email: state.email,
         booking_id: bookingId,
-        package:    pkg.name,
-        date:       formatDate(state.date),
-        time:       formatTime(state.time),
-        riders:     state.riders,
-        total:      `₹${total}`
+        package: pkg.name,
+        date: formatDate(state.date),
+        time: formatTime(state.time),
+        riders: state.riders,
+        total: `₹${total}`
       },
       EMAILJS_PUBLIC_KEY
     );
@@ -373,10 +434,19 @@ async function sendConfirmationEmail(bookingId, total) {
 function updateSummary() {
   const pkg = state.package ? PACKAGES[state.package] : null;
 
-  $('summary-package').textContent   = pkg ? pkg.name : '—';
-  $('summary-date').textContent      = state.date ? formatDate(state.date) : '—';
-  $('summary-time').textContent      = state.time ? formatTime(state.time) : '—';
-  $('summary-riders').textContent    = state.riders;
+  $('summary-package').textContent = pkg ? pkg.name : '—';
+  $('summary-date').textContent = state.date ? formatDate(state.date) : '—';
+
+  if (state.time) {
+    const timeLabel = state.timeEnd
+      ? `${formatTime(state.time)} – ${formatTime(state.timeEnd)}`
+      : `${formatTime(state.time)} – ${formatTime(minsToTime(timeToMins(state.time) + state.duration))}`;
+    $('summary-time').textContent = timeLabel;
+  } else {
+    $('summary-time').textContent = '—';
+  }
+
+  $('summary-riders').textContent = state.riders;
   $('summary-price-per').textContent = pkg ? `₹${pkg.price}` : '—';
 
   if (pkg) {
@@ -396,12 +466,16 @@ function formatDate(dateStr) {
 
 function showSuccessScreen(bookingId, total) {
   const pkg = PACKAGES[state.package];
+  const timeLabel = state.timeEnd
+    ? `${formatTime(state.time)} – ${formatTime(state.timeEnd)}`
+    : `${formatTime(state.time)} – ${formatTime(minsToTime(timeToMins(state.time) + state.duration))}`;
+
   $('success-details').innerHTML = `
     <div class="success-detail-row"><span>Booking ID</span><strong>${bookingId}</strong></div>
     <div class="success-detail-row"><span>Name</span><strong>${state.name}</strong></div>
     <div class="success-detail-row"><span>Package</span><strong>${pkg.name}</strong></div>
     <div class="success-detail-row"><span>Date</span><strong>${formatDate(state.date)}</strong></div>
-    <div class="success-detail-row"><span>Time</span><strong>${formatTime(state.time)}</strong></div>
+    <div class="success-detail-row"><span>Time</span><strong>${timeLabel}</strong></div>
     <div class="success-detail-row"><span>Riders</span><strong>${state.riders}</strong></div>
     <div class="success-detail-row total-row"><span>Total</span><strong>₹${total}</strong></div>
   `;

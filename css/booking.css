@@ -288,6 +288,21 @@
   letter-spacing: 1px;
   color: var(--gray);
   width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.riders-note i { color: var(--blue); font-size: 0.9rem; }
+.rider-link {
+  color: var(--blue);
+  text-decoration: none;
+  font-weight: 600;
+  border-bottom: 1px dashed var(--blue);
+  transition: all 0.2s;
+}
+.rider-link:hover {
+  color: var(--cyan);
+  border-bottom-color: var(--cyan);
 }
 
 /* ---- DATE PICKER ---- */
@@ -641,3 +656,4 @@
   margin-top: 16px;
 }
 .success-payment-note i { color: var(--blue); font-size: 1rem; flex-shrink: 0; }
+

@@ -24,6 +24,24 @@ const PACKAGES = {
   18: { name: "18 Laps — Grand Prix",  price: 550, duration: 25 }
 };
 
+const KARTS = 3;
+const MAX_RIDERS = 12;
+
+function slotsNeeded(riders) {
+  return Math.ceil(riders / KARTS);
+}
+
+// Generate consecutive slot times starting from a given time
+function getWindowSlots(startTime, duration, count) {
+  const slots = [];
+  let current = timeToMins(startTime);
+  for (let i = 0; i < count; i++) {
+    slots.push(minsToTime(current));
+    current += duration;
+  }
+  return slots;
+}
+
 let autoRefreshInterval = null;
 
 // ── DOM ──────────────────────────────────────
@@ -338,7 +356,7 @@ function createBookingCard(b) {
         </div>
         <div class="booking-detail">
           <span class="booking-detail-label">Time</span>
-          <span class="booking-detail-value">${formatTime(b.time)}</span>
+          <span class="booking-detail-value">${b.timeEnd ? `${formatTime(b.time)} – ${formatTime(b.timeEnd)}` : `${formatTime(b.time)} – ${formatTime(minsToTime(timeToMins(b.time) + (PACKAGES[Object.keys(PACKAGES).find(k => PACKAGES[k].name === b.package)]?.duration || 15)))}`}</span>
         </div>
         <div class="booking-detail">
           <span class="booking-detail-label">Riders</span>
@@ -539,7 +557,9 @@ $('modal-submit').addEventListener('click', async () => {
     const pkgData   = PACKAGES[pkg];
     const total     = pkgData.price * riders;
     const bookingId = `FP-WI-${Date.now()}`;
-    const slotId    = `${date}_${time}`;
+    const needed    = slotsNeeded(riders);
+    const windowSlots = getWindowSlots(time, pkgData.duration, needed);
+    const timeEnd   = minsToTime(timeToMins(windowSlots[windowSlots.length - 1]) + pkgData.duration);
 
     // Save booking
     await setDoc(doc(db, 'bookings', bookingId), {
@@ -550,6 +570,8 @@ $('modal-submit').addEventListener('click', async () => {
       package:  pkgData.name,
       date,
       time,
+      timeEnd,
+      windowSlots,
       riders,
       pricePerRider: pkgData.price,
       total,
@@ -559,14 +581,16 @@ $('modal-submit').addEventListener('click', async () => {
       createdAt: new Date().toISOString()
     });
 
-    // Block slot
-    await setDoc(doc(db, 'slots', slotId), {
-      date,
-      time,
-      duration: pkgData.duration,
-      package:  pkgData.name,
-      booked:   true
-    });
+    // Block all slots in the window
+    for (const slotTime of windowSlots) {
+      await setDoc(doc(db, 'slots', `${date}_${slotTime}`), {
+        date,
+        time:     slotTime,
+        duration: pkgData.duration,
+        package:  pkgData.name,
+        booked:   true
+      });
+    }
 
     closeWalkinModal();
     $('modal-submit').disabled = false;
@@ -602,4 +626,15 @@ function formatTime(time) {
   const suffix = h >= 12 ? 'PM' : 'AM';
   const h12    = h > 12 ? h - 12 : h === 0 ? 12 : h;
   return `${h12}:${m.toString().padStart(2, '0')} ${suffix}`;
+}
+
+function timeToMins(time) {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function minsToTime(mins) {
+  const h = Math.floor(mins / 60).toString().padStart(2, '0');
+  const m = (mins % 60).toString().padStart(2, '0');
+  return `${h}:${m}`;
 }
