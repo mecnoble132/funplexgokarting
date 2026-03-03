@@ -6,9 +6,10 @@ import { db } from './firebase-config.js';
 import {
   collection,
   doc,
-  setDoc,
+  getDoc,
   getDocs,
   updateDoc,
+  runTransaction,
   query,
   where,
   orderBy
@@ -19,9 +20,9 @@ import {
 const ADMIN_PASSWORD = "funplex2026"; // Change this anytime
 
 const PACKAGES = {
-  8:  { name: "8 Laps — Rookie Run",  price: 350, duration: 15 },
+  8: { name: "8 Laps — Rookie Run", price: 350, duration: 15 },
   13: { name: "13 Laps — Speed Racer", price: 450, duration: 20 },
-  18: { name: "18 Laps — Grand Prix",  price: 550, duration: 25 }
+  18: { name: "18 Laps — Grand Prix", price: 550, duration: 25 }
 };
 
 const KARTS = 3;
@@ -123,7 +124,7 @@ function setDashDate() {
 
 function todayStr() {
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 // ── TABS ─────────────────────────────────────
@@ -158,10 +159,10 @@ function applySearch(query) {
   const q = query.toLowerCase();
 
   ['today-list', 'all-list'].forEach(listId => {
-    const list     = $(listId);
-    const tab      = listId === 'today-list' ? 'today' : 'all';
+    const list = $(listId);
+    const tab = listId === 'today-list' ? 'today' : 'all';
     const noResult = $(`${tab}-no-results`);
-    const empty    = $(`${tab}-empty`);
+    const empty = $(`${tab}-empty`);
 
     const cards = list.querySelectorAll('.booking-card');
     let visibleCount = 0;
@@ -183,8 +184,8 @@ function applySearch(query) {
 
 // ── DATE FILTER ─────────────────────────────
 
-const filterFrom  = $('filter-from');
-const filterTo    = $('filter-to');
+const filterFrom = $('filter-from');
+const filterTo = $('filter-to');
 const filterClear = $('filter-clear');
 
 filterFrom.addEventListener('change', applyDateFilter);
@@ -192,14 +193,14 @@ filterTo.addEventListener('change', applyDateFilter);
 
 filterClear.addEventListener('click', () => {
   filterFrom.value = '';
-  filterTo.value   = '';
+  filterTo.value = '';
   applyDateFilter();
 });
 
 function applyDateFilter() {
-  const from  = filterFrom.value;
-  const to    = filterTo.value;
-  const list  = $('all-list');
+  const from = filterFrom.value;
+  const to = filterTo.value;
+  const list = $('all-list');
   const empty = $('all-empty');
   const noRes = $('all-no-results');
   const cards = list.querySelectorAll('.booking-card');
@@ -209,7 +210,7 @@ function applyDateFilter() {
     const cardDate = card.dataset.date || '';
     let show = true;
     if (from && cardDate < from) show = false;
-    if (to   && cardDate > to)   show = false;
+    if (to && cardDate > to) show = false;
     // Also respect active search query
     const q = $('search-input').value.trim().toLowerCase();
     if (q && !card.textContent.toLowerCase().includes(q)) show = false;
@@ -224,9 +225,9 @@ function applyDateFilter() {
 // ── LOAD TODAY'S BOOKINGS ────────────────────
 
 async function loadTodayBookings(silent = false) {
-  const list    = $('today-list');
+  const list = $('today-list');
   const loading = $('today-loading');
-  const empty   = $('today-empty');
+  const empty = $('today-empty');
 
   // Always clear list to prevent duplicates on refresh
   list.innerHTML = '';
@@ -234,7 +235,7 @@ async function loadTodayBookings(silent = false) {
   if (!silent) loading.style.display = 'flex';
 
   try {
-    const q    = query(collection(db, 'bookings'), where('date', '==', todayStr()));
+    const q = query(collection(db, 'bookings'), where('date', '==', todayStr()));
     const snap = await getDocs(q);
     const bookings = [];
     snap.forEach(d => bookings.push(d.data()));
@@ -262,9 +263,9 @@ async function loadTodayBookings(silent = false) {
 // ── LOAD ALL BOOKINGS ────────────────────────
 
 async function loadAllBookings(silent = false) {
-  const list    = $('all-list');
+  const list = $('all-list');
   const loading = $('all-loading');
-  const empty   = $('all-empty');
+  const empty = $('all-empty');
 
   // Always clear list to prevent duplicates on refresh
   list.innerHTML = '';
@@ -307,22 +308,22 @@ async function loadAllBookings(silent = false) {
 // ── UPDATE STATS ─────────────────────────────
 
 function updateStats(todayBookings) {
-  const confirmed  = todayBookings.filter(b => b.status !== 'cancelled');
+  const confirmed = todayBookings.filter(b => b.status !== 'cancelled');
   // Revenue only counts completed bookings — payment collected at venue
-  const revenue    = confirmed
+  const revenue = confirmed
     .filter(b => b.status === 'completed')
     .reduce((sum, b) => sum + (b.total || 0), 0);
-  const riders     = confirmed.reduce((sum, b) => sum + (b.riders || 0), 0);
+  const riders = confirmed.reduce((sum, b) => sum + (b.riders || 0), 0);
 
-  $('stat-today').textContent   = confirmed.length;
+  $('stat-today').textContent = confirmed.length;
   $('stat-revenue').textContent = `₹${revenue}`;
-  $('stat-riders').textContent  = riders;
+  $('stat-riders').textContent = riders;
 }
 
 // ── CREATE BOOKING CARD ──────────────────────
 
 function createBookingCard(b) {
-  const isWalkin    = b.walkin === true;
+  const isWalkin = b.walkin === true;
   const isCompleted = b.status === 'completed';
 
   const card = document.createElement('div');
@@ -432,12 +433,12 @@ async function toggleComplete(bookingId, card, btn) {
     allCards.forEach(c => {
       todayBookings.push({
         status: c.querySelector('.badge-completed') ? 'completed' : 'confirmed',
-        total:  parseInt(c.querySelector('.booking-total')?.textContent?.replace('₹','') || 0),
+        total: parseInt(c.querySelector('.booking-total')?.textContent?.replace('₹', '') || 0),
         riders: parseInt(c.querySelector('.booking-detail-value')?.textContent || 0)
       });
     });
     // Re-read from Firebase for accurate stats
-    const q    = query(collection(db, 'bookings'), where('date', '==', todayStr()));
+    const q = query(collection(db, 'bookings'), where('date', '==', todayStr()));
     const snap = await getDocs(q);
     const fresh = [];
     snap.forEach(d => fresh.push(d.data()));
@@ -462,7 +463,7 @@ $('modal-cancel').addEventListener('click', closeWalkinModal);
 // Set default date to today
 const wiDate = $('wi-date');
 wiDate.value = todayStr();
-wiDate.min   = todayStr();
+wiDate.min = todayStr();
 
 // When date changes, update min time for today
 wiDate.addEventListener('change', updateMinTime);
@@ -471,8 +472,8 @@ function updateMinTime() {
   const wiTime = $('wi-time');
   if ($('wi-date').value === todayStr()) {
     const now = new Date();
-    const hh  = String(now.getHours()).padStart(2, '0');
-    const mm  = String(now.getMinutes()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
     wiTime.min = `${hh}:${mm}`;
     // Clear time if already selected and now in the past
     if (wiTime.value && wiTime.value < `${hh}:${mm}`) wiTime.value = '';
@@ -486,7 +487,7 @@ $('wi-package').addEventListener('change', updateWalkinTotal);
 $('wi-riders').addEventListener('change', updateWalkinTotal);
 
 function updateWalkinTotal() {
-  const pkg    = parseInt($('wi-package').value);
+  const pkg = parseInt($('wi-package').value);
   const riders = parseInt($('wi-riders').value);
   if (pkg && riders) {
     const price = PACKAGES[pkg].price;
@@ -500,12 +501,12 @@ function openWalkinModal() {
   $('walkin-modal').classList.remove('hidden');
   $('wi-name').focus();
   // Reset form
-  $('wi-name').value    = '';
-  $('wi-phone').value   = '';
+  $('wi-name').value = '';
+  $('wi-phone').value = '';
   $('wi-package').value = '';
-  $('wi-riders').value  = '1';
-  $('wi-date').value    = todayStr();
-  $('wi-time').value    = '';
+  $('wi-riders').value = '1';
+  $('wi-date').value = todayStr();
+  $('wi-time').value = '';
   $('wi-payment').value = 'Cash';
   $('walkin-total').textContent = '';
   $('modal-error').classList.add('hidden');
@@ -523,74 +524,108 @@ $('walkin-modal').addEventListener('click', e => {
 });
 
 $('modal-submit').addEventListener('click', async () => {
-  const name    = $('wi-name').value.trim();
-  const phone   = $('wi-phone').value.trim();
-  const pkg     = parseInt($('wi-package').value);
-  const date    = $('wi-date').value;
-  const time    = $('wi-time').value;
-  const riders  = parseInt($('wi-riders').value);
+  const name = $('wi-name').value.trim();
+  const phone = $('wi-phone').value.trim();
+  const pkg = parseInt($('wi-package').value);
+  const date = $('wi-date').value;
+  const time = $('wi-time').value;
+  const riders = parseInt($('wi-riders').value);
   const payment = $('wi-payment').value;
 
   // Validate
-  if (!name)  return showModalError('Please enter customer name.');
-  if (!phone || !/^\d{10}$/.test(phone.replace(/\s/g,'')))
+  if (!name) return showModalError('Please enter customer name.');
+  if (!phone || !/^\d{10}$/.test(phone.replace(/\s/g, '')))
     return showModalError('Please enter a valid 10-digit phone number.');
-  if (!pkg)   return showModalError('Please select a package.');
-  if (!date)  return showModalError('Please select a date.');
-  if (!time)  return showModalError('Please select a time.');
+  if (!pkg) return showModalError('Please select a package.');
+  if (!date) return showModalError('Please select a date.');
+  if (!time) return showModalError('Please select a time.');
 
   // Check if selected time is in the past for today
   if (date === todayStr()) {
-    const now     = new Date();
+    const now = new Date();
     const nowMins = now.getHours() * 60 + now.getMinutes();
-    const [h, m]  = time.split(':').map(Number);
+    const [h, m] = time.split(':').map(Number);
     const selMins = h * 60 + m;
     if (selMins <= nowMins) {
       return showModalError('Selected time has already passed. Please choose a future time.');
     }
   }
 
-  $('modal-submit').disabled = true;
-  $('modal-submit').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
-
   try {
-    const pkgData   = PACKAGES[pkg];
-    const total     = pkgData.price * riders;
+    const pkgData = PACKAGES[pkg];
+    const total = pkgData.price * riders;
     const bookingId = `FP-WI-${Date.now()}`;
-    const needed    = slotsNeeded(riders);
+    const needed = slotsNeeded(riders);
     const windowSlots = getWindowSlots(time, pkgData.duration, needed);
-    const timeEnd   = minsToTime(timeToMins(windowSlots[windowSlots.length - 1]) + pkgData.duration);
+    const timeEnd = minsToTime(timeToMins(windowSlots[windowSlots.length - 1]) + pkgData.duration);
+    const startMins = timeToMins(time);
+    const endMins = startMins + (needed * pkgData.duration);
 
-    // Save booking
-    await setDoc(doc(db, 'bookings', bookingId), {
-      bookingId,
-      name,
-      phone,
-      email:    '',
-      package:  pkgData.name,
-      date,
-      time,
-      timeEnd,
-      windowSlots,
-      riders,
-      pricePerRider: pkgData.price,
-      total,
-      paymentMethod: payment,
-      walkin:   true,
-      status:   'confirmed',
-      createdAt: new Date().toISOString()
+    // 1. Fetch all currently booked slots for this date to check for ANY range overlap
+    const q = query(collection(db, 'slots'), where('date', '==', date));
+    const snap = await getDocs(q);
+    let overlapTime = null;
+
+    snap.forEach(docSnap => {
+      const d = docSnap.data();
+      if (d.booked) {
+        const s = timeToMins(d.time);
+        const e = s + (d.duration || 15);
+        // Overlap formula: (start1 < end2) && (start2 < end1)
+        if (startMins < e && s < endMins) {
+          overlapTime = d.time;
+        }
+      }
     });
 
-    // Block all slots in the window
-    for (const slotTime of windowSlots) {
-      await setDoc(doc(db, 'slots', `${date}_${slotTime}`), {
-        date,
-        time:     slotTime,
-        duration: pkgData.duration,
-        package:  pkgData.name,
-        booked:   true
-      });
+    if (overlapTime) {
+      return showModalError(`Mismatch! Overlaps with an existing booking at ${formatTime(overlapTime)}.`);
     }
+
+    // 2. Use a transaction for final atomic write
+    await runTransaction(db, async (transaction) => {
+      // Re-verify specific slot keys haven't been taken in the last second
+      const slotRefs = windowSlots.map(t => doc(db, 'slots', `${date}_${t}`));
+      const slotSnaps = await Promise.all(slotRefs.map(ref => transaction.get(ref)));
+
+      slotSnaps.forEach((snap, idx) => {
+        if (snap.exists() && snap.data().booked) {
+          throw new Error(`SLOT_TAKEN:${windowSlots[idx]}`);
+        }
+      });
+
+      // Block the slots
+      slotRefs.forEach((ref, i) => {
+        transaction.set(ref, {
+          date,
+          time: windowSlots[i],
+          duration: pkgData.duration,
+          package: pkgData.name,
+          booked: true
+        });
+      });
+
+      // Create the booking
+      const bookingRef = doc(db, 'bookings', bookingId);
+      transaction.set(bookingRef, {
+        bookingId,
+        name,
+        phone,
+        email: '',
+        package: pkgData.name,
+        date,
+        time,
+        timeEnd,
+        windowSlots,
+        riders,
+        pricePerRider: pkgData.price,
+        total,
+        paymentMethod: payment,
+        walkin: true,
+        status: 'confirmed',
+        createdAt: new Date().toISOString()
+      });
+    });
 
     closeWalkinModal();
     $('modal-submit').disabled = false;
@@ -602,7 +637,12 @@ $('modal-submit').addEventListener('click', async () => {
 
   } catch (e) {
     console.error(e);
-    showModalError('Something went wrong. Please try again.');
+    if (e.message.startsWith('SLOT_TAKEN:')) {
+      const busyTime = formatTime(e.message.split(':')[1]);
+      showModalError(`Mismatch! The slot at ${busyTime} is already booked.`);
+    } else {
+      showModalError('Something went wrong. Please try again.');
+    }
     $('modal-submit').disabled = false;
     $('modal-submit').innerHTML = '<i class="fa-solid fa-plus"></i> Confirm Walk-in';
   }
@@ -624,7 +664,7 @@ function formatTime(time) {
   if (!time) return '—';
   const [h, m] = time.split(':').map(Number);
   const suffix = h >= 12 ? 'PM' : 'AM';
-  const h12    = h > 12 ? h - 12 : h === 0 ? 12 : h;
+  const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
   return `${h12}:${m.toString().padStart(2, '0')} ${suffix}`;
 }
 
