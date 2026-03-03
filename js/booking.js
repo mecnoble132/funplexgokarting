@@ -116,11 +116,13 @@ function updateRidersUI() {
   const needed = slotsNeeded(state.riders);
   const riderNote = document.querySelector('.riders-note');
   if (riderNote) {
-    if (needed === 1) {
-      riderNote.innerHTML = `<i class="fa-solid fa-circle-info"></i> Max ${MAX_RIDERS} riders. For groups larger than ${MAX_RIDERS}, please <a href="tel:+919497188199" class="rider-link">Call us directly</a>.`;
-    } else {
-      riderNote.innerHTML = `<i class="fa-solid fa-layer-group"></i> ${needed} consecutive slots will be reserved for your group (${state.riders} riders ÷ ${KARTS} karts).`;
+    let html = `<div><i class="fa-solid fa-circle-info"></i> For groups larger than ${MAX_RIDERS}, please <a href="tel:+919497188199" class="rider-link">Call us directly</a>.</div>`;
+
+    if (needed > 1) {
+      html = `<div><i class="fa-solid fa-layer-group"></i>${needed} consecutive slots will be reserved (${state.riders} riders).</div>` + html;
     }
+
+    riderNote.innerHTML = html;
   }
   updateSummary();
 }
