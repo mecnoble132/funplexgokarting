@@ -62,6 +62,9 @@
         <button class="refresh-btn" id="refresh-btn">
           <i class="fa-solid fa-rotate"></i> Refresh
         </button>
+        <button class="block-time-btn" id="add-block-btn">
+          <i class="fa-solid fa-ban"></i> Block Time
+        </button>
         <button class="add-walkin-btn" id="add-walkin-btn">
           <i class="fa-solid fa-plus"></i> Add Walk-in
         </button>
@@ -92,6 +95,7 @@
     <div class="dash-tabs">
       <button class="dash-tab active" data-tab="today">Today</button>
       <button class="dash-tab" data-tab="all">All Bookings</button>
+      <button class="dash-tab" data-tab="blocks">Blocked Times</button>
     </div>
 
     <!-- SEARCH BAR -->
@@ -143,6 +147,21 @@
       <div class="empty-state hidden" id="all-no-results">
         <i class="fa-solid fa-magnifying-glass"></i>
         <p>No results found</p>
+      </div>
+    </div>
+
+    <!-- BLOCKED TIMES -->
+    <div class="tab-content hidden" id="tab-blocks">
+      <div class="blocks-header-row">
+        <p class="blocks-desc">Blocked times prevent online bookings for that period. Use this for private events, maintenance, or full-day closures.</p>
+      </div>
+      <div class="bookings-loading" id="blocks-loading">
+        <i class="fa-solid fa-spinner fa-spin"></i> Loading blocks...
+      </div>
+      <div class="blocks-list" id="blocks-list"></div>
+      <div class="empty-state hidden" id="blocks-empty">
+        <i class="fa-solid fa-calendar-xmark"></i>
+        <p>No blocked times set</p>
       </div>
     </div>
 
@@ -222,6 +241,58 @@
       <button class="form-back-btn" id="modal-cancel">Cancel</button>
       <button class="form-submit-btn" id="modal-submit">
         <i class="fa-solid fa-plus"></i> Confirm Walk-in
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- BLOCK TIME MODAL -->
+<div class="modal-overlay hidden" id="block-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">Block Time</h2>
+      <button class="modal-close" id="block-modal-close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="modal-body">
+      <div class="fields-grid">
+        <div class="field-group full-width">
+          <label class="field-label">Date <span class="required">*</span></label>
+          <input type="date" id="block-date" class="field-input date-input" />
+        </div>
+        <div class="field-group full-width">
+          <label class="field-label">Reason / Label</label>
+          <input type="text" id="block-reason" class="field-input" placeholder="e.g. Private corporate event" />
+        </div>
+        <div class="field-group full-width">
+          <label class="block-allday-label">
+            <input type="checkbox" id="block-allday" class="block-allday-checkbox" />
+            <span>Block entire day</span>
+          </label>
+        </div>
+      </div>
+
+      <div id="block-time-range" class="fields-grid">
+        <div class="field-group">
+          <label class="field-label">Start Time <span class="required">*</span></label>
+          <select id="block-start-time" class="field-input"></select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">End Time <span class="required">*</span></label>
+          <select id="block-end-time" class="field-input"></select>
+        </div>
+      </div>
+
+      <div class="modal-error hidden" id="block-modal-error">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span id="block-modal-error-msg"></span>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="form-back-btn" id="block-modal-cancel">Cancel</button>
+      <button class="form-submit-btn block-submit-btn" id="block-modal-submit">
+        <i class="fa-solid fa-ban"></i> Confirm Block
       </button>
     </div>
   </div>

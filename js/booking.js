@@ -205,6 +205,7 @@ async function loadSlots(date) {
   // Get ALL booked slots for this date from Firebase
   let bookedRanges = [];
   try {
+    // ── 1. Regular bookings ──
     const q = query(collection(db, 'slots'), where('date', '==', date));
     const snap = await getDocs(q);
     snap.forEach(d => {
@@ -213,6 +214,18 @@ async function loadSlots(date) {
       const end = start + (data.duration || 15);
       bookedRanges.push({ start, end });
     });
+
+    // ── 2. Admin blocks ──
+    const bq = query(collection(db, 'blocks'), where('date', '==', date));
+    const bsnap = await getDocs(bq);
+    bsnap.forEach(d => {
+      const data = d.data();
+      // allDay blocks span the full operating day
+      const start = timeToMins(data.startTime || '10:00');
+      const end = timeToMins(data.endTime || '22:00');
+      bookedRanges.push({ start, end });
+    });
+
   } catch (e) {
     console.error('Error loading slots:', e);
   }
@@ -245,7 +258,7 @@ async function loadSlots(date) {
     // Past/cutoff check — the start of the window must be > now + cutoff
     const isPast = isToday && windowStart <= nowMins + CUTOFF_MINS;
 
-    // Overlap check — the entire window must be free
+    // Overlap check — the entire window must be free (catches both bookings and blocks)
     const isBooked = bookedRanges.some(b => windowStart < b.end && b.start < windowEnd);
 
     const disabled = isBooked || isPast;

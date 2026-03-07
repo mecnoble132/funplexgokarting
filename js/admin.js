@@ -8,6 +8,8 @@ import {
   doc,
   getDoc,
   getDocs,
+  addDoc,
+  deleteDoc,
   updateDoc,
   runTransaction,
   query,
@@ -27,6 +29,8 @@ const PACKAGES = {
 
 const KARTS = 3;
 const MAX_RIDERS = 12;
+const OPEN_TIME = 10 * 60;  // 10:00 AM
+const CLOSE_TIME = 22 * 60; // 10:00 PM
 
 function slotsNeeded(riders) {
   return Math.ceil(riders / KARTS);
@@ -83,6 +87,7 @@ async function initDashboard() {
   setDashDate();
   await loadTodayBookings();
   await loadAllBookings();
+  await loadBlocks();
   startAutoRefresh();
 }
 
@@ -103,6 +108,7 @@ async function refreshDashboard(silent = false) {
   }
   await loadTodayBookings(silent);
   await loadAllBookings(silent);
+  await loadBlocks(silent);
   if (btn && !silent) {
     btn.disabled = false;
     btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Refresh';
@@ -651,6 +657,198 @@ $('modal-submit').addEventListener('click', async () => {
 function showModalError(msg) {
   $('modal-error-msg').textContent = msg;
   $('modal-error').classList.remove('hidden');
+}
+
+// ── BLOCK TIME MODAL ─────────────────────────
+
+$('add-block-btn').addEventListener('click', openBlockModal);
+$('block-modal-close').addEventListener('click', closeBlockModal);
+$('block-modal-cancel').addEventListener('click', closeBlockModal);
+
+// Close on overlay click
+$('block-modal').addEventListener('click', e => {
+  if (e.target === $('block-modal')) closeBlockModal();
+});
+
+// All-day toggle behaviour
+$('block-allday').addEventListener('change', () => {
+  const isAllDay = $('block-allday').checked;
+  $('block-time-range').classList.toggle('hidden', isAllDay);
+});
+
+// Populate time dropdowns (every 15 min from 10:00 to 22:00)
+function populateBlockTimePickers() {
+  const startSel = $('block-start-time');
+  const endSel = $('block-end-time');
+  startSel.innerHTML = '';
+  endSel.innerHTML = '';
+
+  for (let mins = OPEN_TIME; mins <= CLOSE_TIME; mins += 15) {
+    const val = minsToTime(mins);
+    const label = formatTime(val);
+
+    const optStart = document.createElement('option');
+    optStart.value = val;
+    optStart.textContent = label;
+    startSel.appendChild(optStart);
+
+    const optEnd = document.createElement('option');
+    optEnd.value = val;
+    optEnd.textContent = label;
+    endSel.appendChild(optEnd);
+  }
+
+  // Default: start = 10:00, end = 22:00
+  startSel.value = '10:00';
+  endSel.value = '22:00';
+}
+
+function openBlockModal() {
+  populateBlockTimePickers();
+  $('block-date').value = todayStr();
+  $('block-date').min = todayStr();
+  $('block-allday').checked = false;
+  $('block-time-range').classList.remove('hidden');
+  $('block-reason').value = '';
+  $('block-modal-error').classList.add('hidden');
+  $('block-modal').classList.remove('hidden');
+  $('block-date').focus();
+}
+
+function closeBlockModal() {
+  $('block-modal').classList.add('hidden');
+}
+
+$('block-modal-submit').addEventListener('click', async () => {
+  const date = $('block-date').value;
+  const allDay = $('block-allday').checked;
+  const startTime = $('block-start-time').value;
+  const endTime = $('block-end-time').value;
+  const reason = $('block-reason').value.trim();
+
+  if (!date) return showBlockModalError('Please select a date.');
+  if (!allDay) {
+    if (!startTime || !endTime) return showBlockModalError('Please select start and end times.');
+    if (timeToMins(endTime) <= timeToMins(startTime)) {
+      return showBlockModalError('End time must be after start time.');
+    }
+  }
+
+  const submitBtn = $('block-modal-submit');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+  try {
+    const blockData = {
+      date,
+      allDay,
+      startTime: allDay ? '10:00' : startTime,
+      endTime: allDay ? '22:00' : endTime,
+      reason: reason || 'Blocked',
+      createdAt: new Date().toISOString()
+    };
+
+    await addDoc(collection(db, 'blocks'), blockData);
+
+    closeBlockModal();
+    await loadBlocks();
+
+  } catch (e) {
+    console.error(e);
+    showBlockModalError('Something went wrong. Please try again.');
+  }
+
+  submitBtn.disabled = false;
+  submitBtn.innerHTML = '<i class="fa-solid fa-ban"></i> Confirm Block';
+});
+
+function showBlockModalError(msg) {
+  $('block-modal-error-msg').textContent = msg;
+  $('block-modal-error').classList.remove('hidden');
+}
+
+// ── LOAD & RENDER BLOCKS ─────────────────────
+
+async function loadBlocks(silent = false) {
+  const list = $('blocks-list');
+  const empty = $('blocks-empty');
+  const loading = $('blocks-loading');
+
+  list.innerHTML = '';
+  empty.classList.add('hidden');
+  if (!silent) loading.style.display = 'flex';
+
+  try {
+    const snap = await getDocs(collection(db, 'blocks'));
+    const blocks = [];
+    snap.forEach(d => blocks.push({ id: d.id, ...d.data() }));
+
+    // Sort by date ascending
+    blocks.sort((a, b) => a.date.localeCompare(b.date));
+
+    loading.style.display = 'none';
+
+    if (blocks.length === 0) {
+      empty.classList.remove('hidden');
+    } else {
+      blocks.forEach(b => list.appendChild(createBlockCard(b)));
+    }
+
+  } catch (e) {
+    console.error(e);
+    loading.style.display = 'none';
+    list.innerHTML = '<p style="color:var(--gray); font-family:Rajdhani,sans-serif; padding:20px 0;">Error loading blocks.</p>';
+  }
+}
+
+function createBlockCard(b) {
+  const card = document.createElement('div');
+  card.className = 'block-card';
+  card.dataset.id = b.id;
+
+  const timeLabel = b.allDay
+    ? 'All Day'
+    : `${formatTime(b.startTime)} – ${formatTime(b.endTime)}`;
+
+  const isPast = b.date < todayStr();
+
+  card.innerHTML = `
+    <div class="block-card-left">
+      <div class="block-card-date">${formatDate(b.date)}${isPast ? ' <span class="block-past-tag">Past</span>' : ''}</div>
+      <div class="block-card-time"><i class="fa-solid fa-clock"></i> ${timeLabel}</div>
+      <div class="block-card-reason"><i class="fa-solid fa-tag"></i> ${b.reason}</div>
+    </div>
+    <button class="action-btn btn-delete-block" data-id="${b.id}" aria-label="Delete block">
+      <i class="fa-solid fa-trash"></i> Delete
+    </button>
+  `;
+
+  card.querySelector('.btn-delete-block').addEventListener('click', () => deleteBlock(b.id, card));
+
+  return card;
+}
+
+async function deleteBlock(blockId, card) {
+  const btn = card.querySelector('.btn-delete-block');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+  try {
+    await deleteDoc(doc(db, 'blocks', blockId));
+    card.style.opacity = '0';
+    card.style.transition = 'opacity 0.3s';
+    setTimeout(() => {
+      card.remove();
+      // Show empty state if no more blocks
+      if ($('blocks-list').children.length === 0) {
+        $('blocks-empty').classList.remove('hidden');
+      }
+    }, 300);
+  } catch (e) {
+    console.error(e);
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-trash"></i> Delete';
+  }
 }
 
 // ── HELPERS ──────────────────────────────────
