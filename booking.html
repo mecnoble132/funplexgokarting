@@ -81,30 +81,60 @@
     <!-- STEP 1: PACKAGE -->
     <div class="form-step" id="step-1">
       <h2 class="form-step-title">Choose Your Package</h2>
-      <div class="package-grid">
-        <div class="package-card" data-package="8" data-price="350" data-duration="15">
-          <div class="package-laps">8 Laps</div>
-          <div class="package-name">Rookie Run</div>
-          <div class="package-price"><sup>₹</sup>350 <span>/ rider</span></div>
+      <h3 class="package-category-title" style="margin-top: 20px; margin-bottom: 15px; color: var(--accent);">Adult Go-Kart (Per Head)</h3>
+      <div class="package-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+        <div class="package-card" data-package="adult_10" data-price="399" data-duration="15">
+          <div class="package-laps">10 Laps</div>
+          <div class="package-name">Adult Go-Kart</div>
+          <div class="package-price"><sup>₹</sup>399 <span>/ rider</span></div>
           <div class="package-check"><i class="fa-solid fa-check"></i></div>
         </div>
-        <div class="package-card featured" data-package="13" data-price="450" data-duration="20">
+        <div class="package-card featured" data-package="adult_15" data-price="499" data-duration="20">
           <div class="package-badge">Best Value</div>
-          <div class="package-laps">13 Laps</div>
-          <div class="package-name">Speed Racer</div>
-          <div class="package-price"><sup>₹</sup>450 <span>/ rider</span></div>
+          <div class="package-laps">15 Laps</div>
+          <div class="package-name">Adult Go-Kart</div>
+          <div class="package-price"><sup>₹</sup>499 <span>/ rider</span></div>
           <div class="package-check"><i class="fa-solid fa-check"></i></div>
         </div>
-        <div class="package-card" data-package="18" data-price="550" data-duration="25">
-          <div class="package-laps">18 Laps</div>
-          <div class="package-name">Grand Prix</div>
-          <div class="package-price"><sup>₹</sup>550 <span>/ rider</span></div>
+        <div class="package-card" data-package="adult_20" data-price="599" data-duration="25">
+          <div class="package-laps">20 Laps</div>
+          <div class="package-name">Adult Go-Kart</div>
+          <div class="package-price"><sup>₹</sup>599 <span>/ rider</span></div>
+          <div class="package-check"><i class="fa-solid fa-check"></i></div>
+        </div>
+        <div class="package-card" data-package="adult_25" data-price="799" data-duration="30">
+          <div class="package-laps">25 Laps</div>
+          <div class="package-name">Adult Go-Kart</div>
+          <div class="package-price"><sup>₹</sup>799 <span>/ rider</span></div>
+          <div class="package-check"><i class="fa-solid fa-check"></i></div>
+        </div>
+      </div>
+
+      <h3 class="package-category-title" style="margin-top: 30px; margin-bottom: 5px; color: var(--accent);">Two Seater Kart</h3>
+      <p style="margin-bottom: 15px; font-size: 0.9em; color: var(--text-light);">1 Adult driver mandatory</p>
+      <div class="package-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+        <div class="package-card" data-package="two_seater_5" data-price="549" data-duration="10">
+          <div class="package-laps">05 Laps</div>
+          <div class="package-name">Two Seater</div>
+          <div class="package-price"><sup>₹</sup>549 <span>/ kart</span></div>
+          <div class="package-check"><i class="fa-solid fa-check"></i></div>
+        </div>
+        <div class="package-card featured" data-package="two_seater_10" data-price="749" data-duration="15">
+          <div class="package-laps">10 Laps</div>
+          <div class="package-name">Two Seater</div>
+          <div class="package-price"><sup>₹</sup>749 <span>/ kart</span></div>
+          <div class="package-check"><i class="fa-solid fa-check"></i></div>
+        </div>
+        <div class="package-card" data-package="two_seater_15" data-price="949" data-duration="20">
+          <div class="package-laps">15 Laps</div>
+          <div class="package-name">Two Seater</div>
+          <div class="package-price"><sup>₹</sup>949 <span>/ kart</span></div>
           <div class="package-check"><i class="fa-solid fa-check"></i></div>
         </div>
       </div>
 
       <div class="riders-row">
-        <label class="riders-label">Number of Riders</label>
+        <label class="riders-label">Number of Riders / Karts</label>
         <div class="riders-control">
           <button class="riders-btn" id="riders-minus" type="button"><i class="fa-solid fa-minus"></i></button>
           <span class="riders-count" id="riders-count">1</span>

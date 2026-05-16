@@ -22,9 +22,13 @@ import {
 const ADMIN_PASSWORD = "funplex2026"; // Change this anytime
 
 const PACKAGES = {
-  8: { name: "8 Laps — Rookie Run", price: 350, duration: 15 },
-  13: { name: "13 Laps — Speed Racer", price: 450, duration: 20 },
-  18: { name: "18 Laps — Grand Prix", price: 550, duration: 25 }
+  "adult_10": { name: "10 Laps — Adult Go-Kart", price: 399, duration: 15 },
+  "adult_15": { name: "15 Laps — Adult Go-Kart", price: 499, duration: 20 },
+  "adult_20": { name: "20 Laps — Adult Go-Kart", price: 599, duration: 25 },
+  "adult_25": { name: "25 Laps — Adult Go-Kart", price: 799, duration: 30 },
+  "two_seater_5": { name: "05 Laps — Two Seater Kart", price: 549, duration: 10 },
+  "two_seater_10": { name: "10 Laps — Two Seater Kart", price: 749, duration: 15 },
+  "two_seater_15": { name: "15 Laps — Two Seater Kart", price: 949, duration: 20 }
 };
 
 const KARTS = 3;
@@ -493,7 +497,7 @@ $('wi-package').addEventListener('change', updateWalkinTotal);
 $('wi-riders').addEventListener('change', updateWalkinTotal);
 
 function updateWalkinTotal() {
-  const pkg = parseInt($('wi-package').value);
+  const pkg = $('wi-package').value;
   const riders = parseInt($('wi-riders').value);
   if (pkg && riders) {
     const price = PACKAGES[pkg].price;
@@ -532,7 +536,7 @@ $('walkin-modal').addEventListener('click', e => {
 $('modal-submit').addEventListener('click', async () => {
   const name = $('wi-name').value.trim();
   const phone = $('wi-phone').value.trim();
-  const pkg = parseInt($('wi-package').value);
+  const pkg = $('wi-package').value;
   const date = $('wi-date').value;
   const time = $('wi-time').value;
   const riders = parseInt($('wi-riders').value);
