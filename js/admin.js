@@ -371,7 +371,7 @@ function createBookingCard(b) {
         </div>
         <div class="booking-detail">
           <span class="booking-detail-label">Riders</span>
-          <span class="booking-detail-value">${b.riders}</span>
+          <span class="booking-detail-value booking-riders">${b.riders}</span>
         </div>
         ${b.phone ? `<div class="booking-detail">
           <span class="booking-detail-label">Phone</span>
@@ -444,7 +444,7 @@ async function toggleComplete(bookingId, card, btn) {
       todayBookings.push({
         status: c.querySelector('.badge-completed') ? 'completed' : 'confirmed',
         total: parseInt(c.querySelector('.booking-total')?.textContent?.replace('₹', '') || 0),
-        riders: parseInt(c.querySelector('.booking-detail-value')?.textContent || 0)
+        riders: parseInt(c.querySelector('.booking-riders')?.textContent || 0)
       });
     });
     // Re-read from Firebase for accurate stats

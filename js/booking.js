@@ -501,7 +501,7 @@ function showSuccessScreen(bookingId, total) {
     <div class="success-detail-row"><span>Package</span><strong>${pkg.name}</strong></div>
     <div class="success-detail-row"><span>Date</span><strong>${formatDate(state.date)}</strong></div>
     <div class="success-detail-row"><span>Time</span><strong>${timeLabel}</strong></div>
-    <div class="success-detail-row"><span>Riders</span><strong>${state.riders}</strong></div>
+    <div class="success-detail-row"><span>Karts / Riders</span><strong>${state.riders}</strong></div>
     <div class="success-detail-row total-row"><span>Total</span><strong>₹${total}</strong></div>
   `;
   showStep('success');
