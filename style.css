@@ -19,9 +19,30 @@ body {
   overflow-x: hidden;
 }
 
+/* ---- TOP BANNER ---- */
+.top-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 36px;
+  background: var(--blue);
+  color: var(--black);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  z-index: 300;
+}
+
 /* ---- NAV ---- */
 nav {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  position: fixed; top: 36px; left: 0; right: 0; z-index: 100;
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 20px;
   background: rgba(11,15,23,0.97);
@@ -91,9 +112,9 @@ nav {
 /* ---- MOBILE MENU DRAWER ---- */
 .mobile-menu {
   position: fixed;
-  top: 0; right: 0;
+  top: 36px; right: 0;
   width: min(320px, 85vw);
-  height: 100vh;
+  height: calc(100vh - 36px);
   background: rgba(11,15,23,0.98);
   backdrop-filter: blur(16px);
   z-index: 150;

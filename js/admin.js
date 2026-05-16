@@ -31,7 +31,7 @@ const PACKAGES = {
   "two_seater_15": { name: "15 Laps — Two Seater Kart", price: 949, duration: 20 }
 };
 
-const KARTS = 3;
+const KARTS = 4;
 const MAX_RIDERS = 12;
 const OPEN_TIME = 10 * 60;  // 10:00 AM
 const CLOSE_TIME = 22 * 60; // 10:00 PM

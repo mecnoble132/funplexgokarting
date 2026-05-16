@@ -32,7 +32,7 @@ const PACKAGES = {
   "two_seater_15": { name: "15 Laps — Two Seater Kart", price: 949, duration: 20 }
 };
 
-const KARTS = 3; // Max riders per single slot
+const KARTS = 4; // Max riders per single slot
 const MAX_RIDERS = 12;
 
 // How many consecutive slots are needed for a given rider count
