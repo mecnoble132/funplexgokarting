@@ -418,10 +418,7 @@ section { padding: 60px 20px; }
 }
 .rate-card:hover { transform: translateY(-4px); border-color: var(--blue); }
 .rate-card.featured {
-  background: rgba(0,174,239,0.1);
-  border-color: var(--blue);
-  border-top-width: 3px;
-  box-shadow: 0 0 30px rgba(0,174,239,0.12);
+  /* Removed highlighting to avoid confusion */
 }
 .rate-badge {
   position: absolute; top: 18px; right: 18px;

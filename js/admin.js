@@ -36,8 +36,10 @@ const MAX_RIDERS = 12;
 const OPEN_TIME = 10 * 60;  // 10:00 AM
 const CLOSE_TIME = 22 * 60; // 10:00 PM
 
-function slotsNeeded(riders) {
-  return Math.ceil(riders / KARTS);
+function slotsNeeded(riders, pkgId) {
+  const isTwoSeater = pkgId && pkgId.startsWith('two_seater');
+  const capacity = isTwoSeater ? 1 : KARTS;
+  return Math.ceil(riders / capacity);
 }
 
 // Generate consecutive slot times starting from a given time
@@ -493,7 +495,22 @@ function updateMinTime() {
 }
 
 // Auto-calculate total
-$('wi-package').addEventListener('change', updateWalkinTotal);
+$('wi-package').addEventListener('change', () => {
+  const pkg = $('wi-package').value;
+  const isTwoSeater = pkg && pkg.startsWith('two_seater');
+  const ridersSelect = $('wi-riders');
+
+  Array.from(ridersSelect.options).forEach(opt => {
+    opt.disabled = false;
+    const val = parseInt(opt.value);
+    const capacity = isTwoSeater ? 1 : KARTS;
+    const slots = Math.ceil(val / capacity);
+    opt.textContent = `${val} Kart${val > 1 ? 's' : ''}/Rider${val > 1 ? 's' : ''}` + (slots > 1 ? ` (${slots} slots)` : '');
+  });
+
+  updateWalkinTotal();
+});
+
 $('wi-riders').addEventListener('change', updateWalkinTotal);
 
 function updateWalkinTotal() {
@@ -565,7 +582,7 @@ $('modal-submit').addEventListener('click', async () => {
     const pkgData = PACKAGES[pkg];
     const total = pkgData.price * riders;
     const bookingId = `FP-WI-${Date.now()}`;
-    const needed = slotsNeeded(riders);
+    const needed = slotsNeeded(riders, pkg);
     const windowSlots = getWindowSlots(time, pkgData.duration, needed);
     const timeEnd = minsToTime(timeToMins(windowSlots[windowSlots.length - 1]) + pkgData.duration);
     const startMins = timeToMins(time);

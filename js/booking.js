@@ -36,8 +36,10 @@ const KARTS = 3; // Max riders per single slot
 const MAX_RIDERS = 12;
 
 // How many consecutive slots are needed for a given rider count
-function slotsNeeded(riders) {
-  return Math.ceil(riders / KARTS);
+function slotsNeeded(riders, pkgId) {
+  const isTwoSeater = pkgId && pkgId.startsWith('two_seater');
+  const capacity = isTwoSeater ? 1 : KARTS;
+  return Math.ceil(riders / capacity);
 }
 
 const OPEN_TIME = 10 * 60;  // 10:00 AM in minutes
@@ -110,28 +112,56 @@ document.querySelectorAll('.package-card').forEach(card => {
     state.duration = parseInt(card.dataset.duration);
     updateStep1Next();
     updateSummary();
+    updateRidersLabel();
   });
 });
+
+function updateRidersLabel() {
+  if (!state.package) return;
+  const isTwoSeater = state.package.startsWith('two_seater');
+  const labelText = isTwoSeater ? 'Number of Karts' : 'Number of Riders';
+  const labelEl = document.querySelector('.riders-label');
+  if (labelEl) labelEl.textContent = labelText;
+
+  const summaryLabel = document.querySelector('#summary-riders')?.previousElementSibling;
+  if (summaryLabel) summaryLabel.textContent = labelText;
+
+  const summaryPriceLabel = document.querySelector('#summary-price-per')?.previousElementSibling;
+  if (summaryPriceLabel) summaryPriceLabel.textContent = isTwoSeater ? 'Price per Kart' : 'Price per Rider';
+}
 
 const ridersCount = $('riders-count');
 const ridersMinus = $('riders-minus');
 const ridersPlus = $('riders-plus');
 
 function updateRidersUI() {
+  const isTwoSeater = state.package && state.package.startsWith('two_seater');
+  const maxAllowed = MAX_RIDERS;
+
+  // Enforce the limit immediately if they switch packages
+  if (state.riders > maxAllowed) {
+    state.riders = maxAllowed;
+  }
+
   ridersCount.textContent = state.riders;
   ridersMinus.disabled = state.riders <= 1;
-  ridersPlus.disabled = state.riders >= MAX_RIDERS;
+  ridersPlus.disabled = state.riders >= maxAllowed;
 
   // Show how many slots will be needed
-  const needed = slotsNeeded(state.riders);
+  const needed = slotsNeeded(state.riders, state.package);
   const riderNote = document.querySelector('.riders-note');
   if (riderNote) {
     let html = `<div><i class="fa-solid fa-circle-info"></i> For groups larger than ${MAX_RIDERS}, please <a href="tel:+919497188199" class="rider-link">Call us directly</a>.</div>`;
-
+    
     if (needed > 1) {
-      html = `<div><i class="fa-solid fa-layer-group"></i>${needed} consecutive slots will be reserved (${state.riders} riders).</div>` + html;
+      const typeStr = isTwoSeater ? 'kart' : 'rider';
+      html = `<div><i class="fa-solid fa-layer-group" style="color:var(--blue);"></i>${needed} consecutive slots will be reserved (${state.riders} ${typeStr}s).</div>` + html;
     }
-
+    
+    if (isTwoSeater) {
+      html = `<div><i class="fa-solid fa-triangle-exclamation" style="color: #ffcc00;"></i> We have 1 Two-Seater Kart. Multiple karts will be booked in consecutive slots.</div>` + html;
+    }
+    
     riderNote.innerHTML = html;
   }
   updateSummary();
@@ -146,7 +176,9 @@ ridersMinus.addEventListener('click', () => {
   }
 });
 ridersPlus.addEventListener('click', () => {
-  if (state.riders < MAX_RIDERS) {
+  const maxAllowed = MAX_RIDERS;
+  
+  if (state.riders < maxAllowed) {
     state.riders++;
     updateRidersUI();
     if (state.date) { state.time = null; $('step2-next').disabled = true; loadSlots(state.date); }
@@ -236,7 +268,7 @@ async function loadSlots(date) {
 
   // Generate all base slots for the selected package duration
   const allSlots = generateSlots(state.duration);
-  const needed = slotsNeeded(state.riders);
+  const needed = slotsNeeded(state.riders, state.package);
   const now = new Date();
   const isToday = date === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const nowMins = now.getHours() * 60 + now.getMinutes();

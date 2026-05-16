@@ -204,13 +204,12 @@
 }
 
 .package-card.featured {
-  background: rgba(0, 174, 239, 0.07);
-  border-color: rgba(0, 174, 239, 0.3);
+  /* Removed highlighting to avoid confusion */
 }
 
 .package-card.featured.selected {
   border-color: var(--blue);
-  background: rgba(0, 174, 239, 0.15);
+  background: rgba(0, 174, 239, 0.08);
 }
 
 .package-badge {
